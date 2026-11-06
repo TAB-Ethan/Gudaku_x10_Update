@@ -1,0 +1,470 @@
+=== TypeDef rows ===
+1 '' <Module> extends: <dnfile.codedindex.TypeDefOrRef object at 0x7f09e83c90d0> flags: tdAbstract                                 False
+tdAnsiClass                                 True
+tdAutoClass                                False
+tdAutoLayout                                True
+tdBeforeFieldInit                          False
+tdClass                                     True
+tdCustomFormatClass                        False
+tdExplicitLayout                           False
+tdForwarder                                False
+tdHasSecurity                              False
+tdImport                                   False
+tdInterface                                False
+tdNestedAssembly                           False
+tdNestedFamANDAssem                        False
+tdNestedFamORAssem                         False
+tdNestedFamily                             False
+tdNestedPrivate                            False
+tdNestedPublic                             False
+tdNotPublic                                 True
+tdPublic                                   False
+tdRTSpecialName                            False
+tdSealed                                   False
+tdSequentialLayout                         False
+tdSerializable                             False
+tdSpecialName                              False
+tdUnicodeClass                             False
+tdWindowsRuntime                           False
+2 'megidont' X10 extends: <dnfile.codedindex.TypeDefOrRef object at 0x7f09e83c9280> flags: tdAbstract                                 False
+tdAnsiClass                                 True
+tdAutoClass                                False
+tdAutoLayout                                True
+tdBeforeFieldInit                           True
+tdClass                                     True
+tdCustomFormatClass                        False
+tdExplicitLayout                           False
+tdForwarder                                False
+tdHasSecurity                              False
+tdImport                                   False
+tdInterface                                False
+tdNestedAssembly                           False
+tdNestedFamANDAssem                        False
+tdNestedFamORAssem                         False
+tdNestedFamily                             False
+tdNestedPrivate                            False
+tdNestedPublic                             False
+tdNotPublic                                False
+tdPublic                                    True
+tdRTSpecialName                            False
+tdSealed                                   False
+tdSequentialLayout                         False
+tdSerializable                             False
+tdSpecialName                              False
+tdUnicodeClass                             False
+tdWindowsRuntime                           False
+3 '' <PrivateImplementationDetails> extends: <dnfile.codedindex.TypeDefOrRef object at 0x7f09e83c96a0> flags: tdAbstract                                 False
+tdAnsiClass                                 True
+tdAutoClass                                False
+tdAutoLayout                                True
+tdBeforeFieldInit                          False
+tdClass                                     True
+tdCustomFormatClass                        False
+tdExplicitLayout                           False
+tdForwarder                                False
+tdHasSecurity                              False
+tdImport                                   False
+tdInterface                                False
+tdNestedAssembly                           False
+tdNestedFamANDAssem                        False
+tdNestedFamORAssem                         False
+tdNestedFamily                             False
+tdNestedPrivate                            False
+tdNestedPublic                             False
+tdNotPublic                                 True
+tdPublic                                   False
+tdRTSpecialName                            False
+tdSealed                                    True
+tdSequentialLayout                         False
+tdSerializable                             False
+tdSpecialName                              False
+tdUnicodeClass                             False
+tdWindowsRuntime                           False
+4 '' __StaticArrayInitTypeSize=16 extends: <dnfile.codedindex.TypeDefOrRef object at 0x7f09e83c97f0> flags: tdAbstract                                 False
+tdAnsiClass                                 True
+tdAutoClass                                False
+tdAutoLayout                               False
+tdBeforeFieldInit                          False
+tdClass                                     True
+tdCustomFormatClass                        False
+tdExplicitLayout                            True
+tdForwarder                                False
+tdHasSecurity                              False
+tdImport                                   False
+tdInterface                                False
+tdNestedAssembly                           False
+tdNestedFamANDAssem                        False
+tdNestedFamORAssem                         False
+tdNestedFamily                             False
+tdNestedPrivate                             True
+tdNestedPublic                             False
+tdNotPublic                                False
+tdPublic                                   False
+tdRTSpecialName                            False
+tdSealed                                    True
+tdSequentialLayout                         False
+tdSerializable                             False
+tdSpecialName                              False
+tdUnicodeClass                             False
+tdWindowsRuntime                           False
+=== Field rows ===
+1 log sig: <dnfile.stream.HeapItemBinary object at 0x7f09e83c98b0> flags: fdAssembly                                  True
+fdFamANDAssem                              False
+fdFamORAssem                               False
+fdFamily                                   False
+fdHasDefault                               False
+fdHasFieldMarshal                          False
+fdHasFieldRVA                              False
+fdInitOnly                                 False
+fdLiteral                                  False
+fdNotSerialized                            False
+fdPinvokeImpl                              False
+fdPrivate                                  False
+fdPrivateScope                             False
+fdPublic                                   False
+fdRTSpecialName                            False
+fdSpecialName                              False
+fdStatic                                    True
+fdUnknown1                                 False
+2 config sig: <dnfile.stream.HeapItemBinary object at 0x7f09e83c9a00> flags: fdAssembly                                 False
+fdFamANDAssem                              False
+fdFamORAssem                               False
+fdFamily                                   False
+fdHasDefault                               False
+fdHasFieldMarshal                          False
+fdHasFieldRVA                              False
+fdInitOnly                                 False
+fdLiteral                                  False
+fdNotSerialized                            False
+fdPinvokeImpl                              False
+fdPrivate                                  False
+fdPrivateScope                             False
+fdPublic                                    True
+fdRTSpecialName                            False
+fdSpecialName                              False
+fdStatic                                    True
+fdUnknown1                                 False
+3 multiplier sig: <dnfile.stream.HeapItemBinary object at 0x7f09e83c9b80> flags: fdAssembly                                 False
+fdFamANDAssem                              False
+fdFamORAssem                               False
+fdFamily                                   False
+fdHasDefault                               False
+fdHasFieldMarshal                          False
+fdHasFieldRVA                              False
+fdInitOnly                                 False
+fdLiteral                                  False
+fdNotSerialized                            False
+fdPinvokeImpl                              False
+fdPrivate                                  False
+fdPrivateScope                             False
+fdPublic                                    True
+fdRTSpecialName                            False
+fdSpecialName                              False
+fdStatic                                    True
+fdUnknown1                                 False
+4 forbiddenItems sig: <dnfile.stream.HeapItemBinary object at 0x7f09e83c9cd0> flags: fdAssembly                                 False
+fdFamANDAssem                              False
+fdFamORAssem                               False
+fdFamily                                   False
+fdHasDefault                               False
+fdHasFieldMarshal                          False
+fdHasFieldRVA                              False
+fdInitOnly                                 False
+fdLiteral                                  False
+fdNotSerialized                            False
+fdPinvokeImpl                              False
+fdPrivate                                  False
+fdPrivateScope                             False
+fdPublic                                    True
+fdRTSpecialName                            False
+fdSpecialName                              False
+fdStatic                                    True
+fdUnknown1                                 False
+5 fixVoidItems sig: <dnfile.stream.HeapItemBinary object at 0x7f09e83c9e20> flags: fdAssembly                                 False
+fdFamANDAssem                              False
+fdFamORAssem                               False
+fdFamily                                   False
+fdHasDefault                               False
+fdHasFieldMarshal                          False
+fdHasFieldRVA                              False
+fdInitOnly                                 False
+fdLiteral                                  False
+fdNotSerialized                            False
+fdPinvokeImpl                              False
+fdPrivate                                  False
+fdPrivateScope                             False
+fdPublic                                    True
+fdRTSpecialName                            False
+fdSpecialName                              False
+fdStatic                                    True
+fdUnknown1                                 False
+6 enableIndex109 sig: <dnfile.stream.HeapItemBinary object at 0x7f09e83c9f70> flags: fdAssembly                                 False
+fdFamANDAssem                              False
+fdFamORAssem                               False
+fdFamily                                   False
+fdHasDefault                               False
+fdHasFieldMarshal                          False
+fdHasFieldRVA                              False
+fdInitOnly                                 False
+fdLiteral                                  False
+fdNotSerialized                            False
+fdPinvokeImpl                              False
+fdPrivate                                  False
+fdPrivateScope                             False
+fdPublic                                    True
+fdRTSpecialName                            False
+fdSpecialName                              False
+fdStatic                                    True
+fdUnknown1                                 False
+7 enableIndex167 sig: <dnfile.stream.HeapItemBinary object at 0x7f09e83ca0c0> flags: fdAssembly                                 False
+fdFamANDAssem                              False
+fdFamORAssem                               False
+fdFamily                                   False
+fdHasDefault                               False
+fdHasFieldMarshal                          False
+fdHasFieldRVA                              False
+fdInitOnly                                 False
+fdLiteral                                  False
+fdNotSerialized                            False
+fdPinvokeImpl                              False
+fdPrivate                                  False
+fdPrivateScope                             False
+fdPublic                                    True
+fdRTSpecialName                            False
+fdSpecialName                              False
+fdStatic                                    True
+fdUnknown1                                 False
+8 enableIndex168 sig: <dnfile.stream.HeapItemBinary object at 0x7f09e83ca210> flags: fdAssembly                                 False
+fdFamANDAssem                              False
+fdFamORAssem                               False
+fdFamily                                   False
+fdHasDefault                               False
+fdHasFieldMarshal                          False
+fdHasFieldRVA                              False
+fdInitOnly                                 False
+fdLiteral                                  False
+fdNotSerialized                            False
+fdPinvokeImpl                              False
+fdPrivate                                  False
+fdPrivateScope                             False
+fdPublic                                    True
+fdRTSpecialName                            False
+fdSpecialName                              False
+fdStatic                                    True
+fdUnknown1                                 False
+9 enableIndex176 sig: <dnfile.stream.HeapItemBinary object at 0x7f09e83ca360> flags: fdAssembly                                 False
+fdFamANDAssem                              False
+fdFamORAssem                               False
+fdFamily                                   False
+fdHasDefault                               False
+fdHasFieldMarshal                          False
+fdHasFieldRVA                              False
+fdInitOnly                                 False
+fdLiteral                                  False
+fdNotSerialized                            False
+fdPinvokeImpl                              False
+fdPrivate                                  False
+fdPrivateScope                             False
+fdPublic                                    True
+fdRTSpecialName                            False
+fdSpecialName                              False
+fdStatic                                    True
+fdUnknown1                                 False
+10 defaultForbiddenItems sig: <dnfile.stream.HeapItemBinary object at 0x7f09e83ca480> flags: fdAssembly                                 False
+fdFamANDAssem                              False
+fdFamORAssem                               False
+fdFamily                                   False
+fdHasDefault                               False
+fdHasFieldMarshal                          False
+fdHasFieldRVA                              False
+fdInitOnly                                 False
+fdLiteral                                  False
+fdNotSerialized                            False
+fdPinvokeImpl                              False
+fdPrivate                                  False
+fdPrivateScope                             False
+fdPublic                                    True
+fdRTSpecialName                            False
+fdSpecialName                              False
+fdStatic                                    True
+fdUnknown1                                 False
+11 0EDB951A90ED696D0B29CCA3F3323A2D22265B9EB74D5E14B56CA2FEF70AD73F sig: <dnfile.stream.HeapItemBinary object at 0x7f09e83ca5a0> flags: fdAssembly                                  True
+fdFamANDAssem                              False
+fdFamORAssem                               False
+fdFamily                                   False
+fdHasDefault                               False
+fdHasFieldMarshal                          False
+fdHasFieldRVA                               True
+fdInitOnly                                  True
+fdLiteral                                  False
+fdNotSerialized                            False
+fdPinvokeImpl                              False
+fdPrivate                                  False
+fdPrivateScope                             False
+fdPublic                                   False
+fdRTSpecialName                            False
+fdSpecialName                              False
+fdStatic                                    True
+fdUnknown1                                 False
+=== MethodDef rows ===
+1 Awake RVA: 8272 flags: mdAbstract                                 False
+mdAssem                                    False
+mdCheckAccessOnOverride                    False
+mdFamANDAssem                              False
+mdFamORAssem                               False
+mdFamily                                   False
+mdFinal                                    False
+mdHasSecurity                              False
+mdHideBySig                                 True
+mdNewSlot                                  False
+mdPinvokeImpl                              False
+mdPrivate                                  False
+mdPrivateScope                             False
+mdPublic                                    True
+mdRTSpecialName                            False
+mdRequireSecObject                         False
+mdReuseSlot                                 True
+mdSpecialName                              False
+mdStatic                                   False
+mdUnknown1                                 False
+mdUnmanagedExport                          False
+mdVirtual                                  False
+2 InitConfig RVA: 8308 flags: mdAbstract                                 False
+mdAssem                                     True
+mdCheckAccessOnOverride                    False
+mdFamANDAssem                              False
+mdFamORAssem                               False
+mdFamily                                   False
+mdFinal                                    False
+mdHasSecurity                              False
+mdHideBySig                                 True
+mdNewSlot                                  False
+mdPinvokeImpl                              False
+mdPrivate                                  False
+mdPrivateScope                             False
+mdPublic                                   False
+mdRTSpecialName                            False
+mdRequireSecObject                         False
+mdReuseSlot                                 True
+mdSpecialName                              False
+mdStatic                                   False
+mdUnknown1                                 False
+mdUnmanagedExport                          False
+mdVirtual                                  False
+3 Initialize RVA: 8556 flags: mdAbstract                                 False
+mdAssem                                    False
+mdCheckAccessOnOverride                    False
+mdFamANDAssem                              False
+mdFamORAssem                               False
+mdFamily                                   False
+mdFinal                                    False
+mdHasSecurity                              False
+mdHideBySig                                 True
+mdNewSlot                                  False
+mdPinvokeImpl                              False
+mdPrivate                                  False
+mdPrivateScope                             False
+mdPublic                                    True
+mdRTSpecialName                            False
+mdRequireSecObject                         False
+mdReuseSlot                                 True
+mdSpecialName                              False
+mdStatic                                    True
+mdUnknown1                                 False
+mdUnmanagedExport                          False
+mdVirtual                                  False
+4 multiplyItems RVA: 9096 flags: mdAbstract                                 False
+mdAssem                                    False
+mdCheckAccessOnOverride                    False
+mdFamANDAssem                              False
+mdFamORAssem                               False
+mdFamily                                   False
+mdFinal                                    False
+mdHasSecurity                              False
+mdHideBySig                                 True
+mdNewSlot                                  False
+mdPinvokeImpl                              False
+mdPrivate                                  False
+mdPrivateScope                             False
+mdPublic                                    True
+mdRTSpecialName                            False
+mdRequireSecObject                         False
+mdReuseSlot                                 True
+mdSpecialName                              False
+mdStatic                                    True
+mdUnknown1                                 False
+mdUnmanagedExport                          False
+mdVirtual                                  False
+5 .ctor RVA: 9295 flags: mdAbstract                                 False
+mdAssem                                    False
+mdCheckAccessOnOverride                    False
+mdFamANDAssem                              False
+mdFamORAssem                               False
+mdFamily                                   False
+mdFinal                                    False
+mdHasSecurity                              False
+mdHideBySig                                 True
+mdNewSlot                                  False
+mdPinvokeImpl                              False
+mdPrivate                                  False
+mdPrivateScope                             False
+mdPublic                                    True
+mdRTSpecialName                             True
+mdRequireSecObject                         False
+mdReuseSlot                                 True
+mdSpecialName                               True
+mdStatic                                   False
+mdUnknown1                                 False
+mdUnmanagedExport                          False
+mdVirtual                                  False
+6 .cctor RVA: 9303 flags: mdAbstract                                 False
+mdAssem                                    False
+mdCheckAccessOnOverride                    False
+mdFamANDAssem                              False
+mdFamORAssem                               False
+mdFamily                                   False
+mdFinal                                    False
+mdHasSecurity                              False
+mdHideBySig                                 True
+mdNewSlot                                  False
+mdPinvokeImpl                              False
+mdPrivate                                   True
+mdPrivateScope                             False
+mdPublic                                   False
+mdRTSpecialName                             True
+mdRequireSecObject                         False
+mdReuseSlot                                 True
+mdSpecialName                               True
+mdStatic                                    True
+mdUnknown1                                 False
+mdUnmanagedExport                          False
+mdVirtual                                  False
+=== Param rows ===
+1 cfg
+2 itemIndex
+3 count
+=== AssemblyRef rows ===
+1 netstandard None
+2 BepInEx None
+3 0Harmony None
+4 RoR2 None
+=== CustomAttribute rows (parent -> type) ===
+1 Parent: <dnfile.codedindex.HasCustomAttribute object at 0x7f09e8b76930> -> UnverifiableCodeAttribute..ctor
+2 Parent: <dnfile.codedindex.HasCustomAttribute object at 0x7f09e83d8d10> -> CompilationRelaxationsAttribute..ctor
+3 Parent: <dnfile.codedindex.HasCustomAttribute object at 0x7f09e83d8dd0> -> RuntimeCompatibilityAttribute..ctor
+4 Parent: <dnfile.codedindex.HasCustomAttribute object at 0x7f09e83d8ef0> -> DebuggableAttribute..ctor
+5 Parent: <dnfile.codedindex.HasCustomAttribute object at 0x7f09e83d8fb0> -> TargetFrameworkAttribute..ctor
+6 Parent: <dnfile.codedindex.HasCustomAttribute object at 0x7f09e83d9070> -> AssemblyCompanyAttribute..ctor
+7 Parent: <dnfile.codedindex.HasCustomAttribute object at 0x7f09e83d9190> -> AssemblyConfigurationAttribute..ctor
+8 Parent: <dnfile.codedindex.HasCustomAttribute object at 0x7f09e83d92b0> -> AssemblyFileVersionAttribute..ctor
+9 Parent: <dnfile.codedindex.HasCustomAttribute object at 0x7f09e83d93d0> -> AssemblyInformationalVersionAttribute..ctor
+10 Parent: <dnfile.codedindex.HasCustomAttribute object at 0x7f09e83d9490> -> AssemblyProductAttribute..ctor
+11 Parent: <dnfile.codedindex.HasCustomAttribute object at 0x7f09e83d9550> -> AssemblyTitleAttribute..ctor
+12 Parent: <dnfile.codedindex.HasCustomAttribute object at 0x7f09e83d9610> -> BepInDependency..ctor
+13 Parent: <dnfile.codedindex.HasCustomAttribute object at 0x7f09e83d96d0> -> BepInPlugin..ctor
+14 Parent: <dnfile.codedindex.HasCustomAttribute object at 0x7f09e83d97f0> -> HarmonyPatch..ctor
+15 Parent: <dnfile.codedindex.HasCustomAttribute object at 0x7f09e83d9910> -> HarmonyPostfix..ctor
+16 Parent: <dnfile.codedindex.HasCustomAttribute object at 0x7f09e83d99d0> -> HarmonyPatch..ctor
+17 Parent: <dnfile.codedindex.HasCustomAttribute object at 0x7f09e83d9af0> -> CompilerGeneratedAttribute..ctor
+18 Parent: <dnfile.codedindex.HasCustomAttribute object at 0x7f09e83d9c10> -> HarmonyPrefix..ctor
+19 Parent: <dnfile.codedindex.HasCustomAttribute object at 0x7f09e83d9cd0> -> HarmonyPatch..ctor
