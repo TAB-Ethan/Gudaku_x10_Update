@@ -1,0 +1,362 @@
+===== Awake =====
+ldtoken ; X10
+call ; System.Type.GetTypeFromHandle
+ldstr ; tok:string token(0x70000001)
+call ; HarmonyLib.Harmony.CreateAndPatchAll
+pop
+ldarg.0
+ldsfld ; config
+call ; InitConfig
+ret
+===== InitConfig =====
+ldarg.1
+stsfld ; config
+ldarg.0
+call ; BepInEx.BaseUnityPlugin.get_Config
+ldstr ; tok:string token(0x70000009)
+ldstr ; tok:string token(0x70000021)
+ldc.i4.s (10)
+ldstr ; tok:string token(0x70000037)
+callvirt ; tok:token(0x2B000001)
+stsfld ; multiplier
+ldarg.0
+call ; BepInEx.BaseUnityPlugin.get_Config
+ldstr ; tok:string token(0x70000009)
+ldstr ; tok:string token(0x70000093)
+ldsfld ; defaultForbiddenItems
+ldstr ; tok:string token(0x700000BB)
+callvirt ; tok:token(0x2B000002)
+stsfld ; forbiddenItems
+ldarg.0
+call ; BepInEx.BaseUnityPlugin.get_Config
+ldstr ; tok:string token(0x70000009)
+ldstr ; tok:string token(0x70000312)
+ldc.i4.1
+ldstr ; tok:string token(0x7000033C)
+callvirt ; tok:token(0x2B000003)
+stsfld ; fixVoidItems
+ldarg.0
+call ; BepInEx.BaseUnityPlugin.get_Config
+ldstr ; tok:string token(0x70000409)
+ldstr ; tok:string token(0x70000425)
+ldc.i4.0
+ldstr ; tok:string token(0x7000047F)
+callvirt ; tok:token(0x2B000003)
+stsfld ; enableIndex109
+ldarg.0
+call ; BepInEx.BaseUnityPlugin.get_Config
+ldstr ; tok:string token(0x70000409)
+ldstr ; tok:string token(0x70000540)
+ldc.i4.0
+ldstr ; tok:string token(0x7000047F)
+callvirt ; tok:token(0x2B000003)
+stsfld ; enableIndex167
+ldarg.0
+call ; BepInEx.BaseUnityPlugin.get_Config
+ldstr ; tok:string token(0x70000409)
+ldstr ; tok:string token(0x7000059A)
+ldc.i4.0
+ldstr ; tok:string token(0x7000047F)
+callvirt ; tok:token(0x2B000003)
+stsfld ; enableIndex168
+ldarg.0
+call ; BepInEx.BaseUnityPlugin.get_Config
+ldstr ; tok:string token(0x70000409)
+ldstr ; tok:string token(0x700005EC)
+ldc.i4.0
+ldstr ; tok:string token(0x7000047F)
+callvirt ; tok:token(0x2B000003)
+stsfld ; enableIndex176
+ret
+===== Initialize =====
+ldc.i4.s (39)
+newarr ; String
+dup
+ldc.i4.0
+ldsfld ; Items.AdaptiveArmor
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.1
+ldstr ; tok:string token(0x7000063E)
+stelem.ref
+dup
+ldc.i4.2
+ldsfld ; Items.BoostAttackSpeed
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.3
+ldstr ; tok:string token(0x7000063E)
+stelem.ref
+dup
+ldc.i4.4
+ldsfld ; Items.BoostDamage
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.5
+ldstr ; tok:string token(0x7000063E)
+stelem.ref
+dup
+ldc.i4.6
+ldsfld ; Items.BoostEquipmentRecharge
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.7
+ldstr ; tok:string token(0x7000063E)
+stelem.ref
+dup
+ldc.i4.8
+ldsfld ; Items.BoostHp
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (9)
+ldstr ; tok:string token(0x7000063E)
+stelem.ref
+dup
+ldc.i4.s (10)
+ldsfld ; Items.CrippleWardOnLevel
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (11)
+ldstr ; tok:string token(0x7000063E)
+stelem.ref
+dup
+ldc.i4.s (12)
+ldsfld ; Items.CutHp
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (13)
+ldstr ; tok:string token(0x7000063E)
+stelem.ref
+dup
+ldc.i4.s (14)
+ldsfld ; Items.DrizzlePlayerHelper
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (15)
+ldstr ; tok:string token(0x7000063E)
+stelem.ref
+dup
+ldc.i4.s (16)
+ldsfld ; Items.ExtraLifeConsumed
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (17)
+ldstr ; tok:string token(0x7000063E)
+stelem.ref
+dup
+ldc.i4.s (18)
+ldsfld ; Items.Ghost
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (19)
+ldstr ; tok:string token(0x7000063E)
+stelem.ref
+dup
+ldc.i4.s (20)
+ldsfld ; Items.HealthDecay
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (21)
+ldstr ; tok:string token(0x7000063E)
+stelem.ref
+dup
+ldc.i4.s (22)
+ldsfld ; Items.InvadingDoppelganger
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (23)
+ldstr ; tok:string token(0x7000063E)
+stelem.ref
+dup
+ldc.i4.s (24)
+ldsfld ; Items.LevelBonus
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (25)
+ldstr ; tok:string token(0x7000063E)
+stelem.ref
+dup
+ldc.i4.s (26)
+ldsfld ; Items.MinionLeash
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (27)
+ldstr ; tok:string token(0x7000063E)
+stelem.ref
+dup
+ldc.i4.s (28)
+ldsfld ; Items.MonsoonPlayerHelper
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (29)
+ldstr ; tok:string token(0x7000063E)
+stelem.ref
+dup
+ldc.i4.s (30)
+ldsfld ; Items.ScrapGreen
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (31)
+ldstr ; tok:string token(0x7000063E)
+stelem.ref
+dup
+ldc.i4.s (32)
+ldsfld ; Items.ScrapRed
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (33)
+ldstr ; tok:string token(0x7000063E)
+stelem.ref
+dup
+ldc.i4.s (34)
+ldsfld ; Items.ScrapWhite
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (35)
+ldstr ; tok:string token(0x7000063E)
+stelem.ref
+dup
+ldc.i4.s (36)
+ldsfld ; Items.ScrapYellow
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (37)
+ldstr ; tok:string token(0x7000063E)
+stelem.ref
+dup
+ldc.i4.s (38)
+ldsfld ; Items.SkullCounter
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+call ; System.String.Concat
+stloc.0
+ldsfld ; defaultForbiddenItems
+ldloc.0
+call ; System.String.op_Inequality
+brtrue.s (1357)
+ret
+ldsfld ; log
+ldc.i4.5
+newarr ; String
+dup
+ldc.i4.0
+ldstr ; tok:string token(0x70000642)
+stelem.ref
+dup
+ldc.i4.1
+ldsfld ; defaultForbiddenItems
+stelem.ref
+dup
+ldc.i4.2
+ldstr ; tok:string token(0x700007CB)
+stelem.ref
+dup
+ldc.i4.3
+ldloc.0
+stelem.ref
+dup
+ldc.i4.4
+ldstr ; tok:string token(0x70000819)
+stelem.ref
+call ; System.String.Concat
+callvirt ; BepInEx.Logging.ManualLogSource.LogFatal
+ret
+===== multiplyItems =====
+ldarg.0
+call ; RoR2.ItemCatalog.GetItemDef
+stloc.0
+ldc.i4.4
+newarr ; Int32
+stloc.1
+ldsfld ; enableIndex109
+callvirt ; get_Value
+brtrue.s (1459)
+ldloc.1
+ldc.i4.0
+ldc.i4.s (109)
+stelem.i4
+ldsfld ; enableIndex167
+callvirt ; get_Value
+brtrue.s (1479)
+ldloc.1
+ldc.i4.0
+ldc.i4 (167)
+stelem.i4
+ldsfld ; enableIndex168
+callvirt ; get_Value
+brtrue.s (1499)
+ldloc.1
+ldc.i4.0
+ldc.i4 (168)
+stelem.i4
+ldsfld ; enableIndex176
+callvirt ; get_Value
+brtrue.s (1519)
+ldloc.1
+ldc.i4.0
+ldc.i4 (176)
+stelem.i4
+ldc.i4.4
+newarr ; ItemTier
+dup
+ldtoken ; 0EDB951A90ED696D0B29CCA3F3323A2D22265B9EB74D5E14B56CA2FEF70AD73F
+call ; System.Runtime.CompilerServices.RuntimeHelpers.InitializeArray
+ldloc.1
+ldarg.0
+call ; tok:token(0x2B000004)
+stloc.2
+ldloc.0
+callvirt ; RoR2.ItemDef.get_tier
+call ; tok:token(0x2B000005)
+brfalse.s (1569)
+ldsfld ; fixVoidItems
+callvirt ; get_Value
+br.s (1570)
+ldc.i4.0
+stloc.3
+ldsfld ; forbiddenItems
+callvirt ; get_Value
+ldloc.0
+ldfld ; RoR2.ItemDef.nameToken
+callvirt ; System.String.Contains
+ldloc.2
+or
+ldloc.3
+or
+brfalse.s (1599)
+ret
+ldarg.1
+ldarg.1
+ldind.i4
+ldsfld ; multiplier
+callvirt ; get_Value
+mul
+stind.i4
+ret
+===== .ctor =====
+ldarg.0
+call ; BepInEx.BaseUnityPlugin..ctor
+ret
+===== .cctor =====
+ldstr ; tok:string token(0x7000091E)
+stsfld ; defaultForbiddenItems
+ret
