@@ -1,0 +1,27 @@
+{
+	"ManifestVersion": 2,
+	"AuthorName": "Gudako",
+	"Name": "Gudako_x10",
+	"DisplayName": "Gudako-x10",
+	"Version": "1.0.1",
+	"WebsiteURL": "https://github.com/Gudak0",
+	"Description": "A mod that multiplies pickups by a configurable amount",
+	"Dependencies": [
+		"bbepis-BepInExPack-5.4.9",
+		"tristanmcpherson-R2API-3.0.30"
+	],
+	"NetworkMode": "both",
+	"PackageType": "mod",
+	"InstallMode": "managed",
+	"Loaders": [
+		"bepinex"
+	],
+	"name": "Gudako_x10",
+	"version_number": "1.0.1",
+	"website_url": "https://github.com/Gudak0",
+	"description": "A mod that multiplies pickups by a configurable amount.",
+	"dependencies": [
+		"bbepis-BepInExPack-5.4.9",
+		"tristanmcpherson-R2API-3.0.30"
+	]
+}
