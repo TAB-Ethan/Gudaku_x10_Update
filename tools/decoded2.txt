@@ -1,0 +1,6 @@
+=== TypeRef ===
+Traceback (most recent call last):
+  File "/workspace/tools/decode2.py", line 30, in <module>
+    if st == 'AssemblyRef': sn = md.AssemblyRef.rows[sr-1].Name
+                                                     ~~^~
+TypeError: unsupported operand type(s) for -: 'AssemblyRefRow' and 'int'
