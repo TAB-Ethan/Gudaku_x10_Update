@@ -1,0 +1,6 @@
+=== #US heap strings ===
+Traceback (most recent call last):
+  File "/workspace/tools/dumpblob.py", line 22, in <module>
+    while i < len(heap):
+              ^^^^^^^^^
+TypeError: object of type 'NoneType' has no len()
