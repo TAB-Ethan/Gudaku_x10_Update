@@ -1,8 +1,1 @@
-obj/
-bin/
-.vscode/
-.idea/
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
+*.dll

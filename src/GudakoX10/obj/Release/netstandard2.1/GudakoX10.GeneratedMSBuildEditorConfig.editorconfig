@@ -1,0 +1,5 @@
+is_global = true
+build_property.RootNamespace = GudakoX10
+build_property.ProjectDir = /workspace/src/GudakoX10/
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 

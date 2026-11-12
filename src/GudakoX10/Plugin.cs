@@ -5,6 +5,7 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 using RoR2;
+using RoR2.ContentManagement;
 
 // Reconstructed source for Gudako-x10.dll (namespace megidont, class X10).
 // Reverse-engineered from the shipped binary and rebuilt against modern
@@ -71,29 +72,29 @@ namespace megidont
         }
 
         // Validates the embedded default forbidden-item list against the live
-        // RoR2Content.Items / JunkContent.Items nameTokens. Logs a critical
-        // error if the game's tokens no longer match what we shipped with.
+        // item nameTokens (looked up via ItemCatalog). Logs a critical error
+        // if the game's tokens no longer match what we shipped with.
         private static void Initialize()
         {
             string expected = string.Concat(
-                RoR2Content.Items.AdaptiveArmor.nameToken, ",",
-                RoR2Content.Items.BoostAttackSpeed.nameToken, ",",
-                RoR2Content.Items.BoostDamage.nameToken, ",",
-                RoR2Content.Items.BoostEquipmentRecharge.nameToken, ",",
-                RoR2Content.Items.BoostHp.nameToken, ",",
-                RoR2Content.Items.CrippleWardOnLevel.nameToken, ",",
-                RoR2Content.Items.CutHp.nameToken, ",",
-                RoR2Content.Items.DrizzlePlayerHelper.nameToken, ",",
-                RoR2Content.Items.ExtraLifeConsumed.nameToken, ",",
-                RoR2Content.Items.Ghost.nameToken, ",",
-                RoR2Content.Items.HealthDecay.nameToken, ",",
-                RoR2Content.Items.InvadingDoppelganger.nameToken, ",",
-                RoR2Content.Items.LevelBonus.nameToken, ",",
-                RoR2Content.Items.MinionLeash.nameToken, ",",
-                RoR2Content.Items.MonsoonPlayerHelper.nameToken, ",",
-                JunkContent.Items.ScrapGreen.nameToken, ",",
-                JunkContent.Items.ScrapRed.nameToken, ",",
-                JunkContent.Items.SkullCounter.nameToken);
+                Token("AdaptiveArmor"), ",",
+                Token("BoostAttackSpeed"), ",",
+                Token("BoostDamage"), ",",
+                Token("BoostEquipmentRecharge"), ",",
+                Token("BoostHp"), ",",
+                Token("CrippleWardOnLevel"), ",",
+                Token("CutHp"), ",",
+                Token("DrizzlePlayerHelper"), ",",
+                Token("ExtraLifeConsumed"), ",",
+                Token("Ghost"), ",",
+                Token("HealthDecay"), ",",
+                Token("InvadingDoppelganger"), ",",
+                Token("LevelBonus"), ",",
+                Token("MinionLeash"), ",",
+                Token("MonsoonPlayerHelper"), ",",
+                Token("ScrapGreen"), ",",
+                Token("ScrapRed"), ",",
+                Token("SkullCounter"));
 
             if (defaultForbiddenItems == expected) return;
 
@@ -102,6 +103,16 @@ namespace megidont
                 + "\nCurrent nametokens mean it should be "
                 + expected
                 + "\nIf you know what this means, you're probably ok. If this is the only mod you are running, message me @Megidon't#0413 on discord.");
+        }
+
+        // Resolves an item's nameToken from its internal item code via the
+        // runtime ItemCatalog (works across all content packs/DLCs).
+        private static string Token(string itemCode)
+        {
+            ItemIndex index = ItemCatalog.FindItemIndex(itemCode);
+            if (index == ItemIndex.None) return string.Empty;
+            ItemDef def = ItemCatalog.GetItemDef(index);
+            return def ? def.nameToken.ToString() : string.Empty;
         }
 
         // Postfix on Inventory.GiveItem(ItemIndex, int): multiplies the count
@@ -125,7 +136,7 @@ namespace megidont
             // Void items were double-multiplied (the unlock counts as a give);
             // skip multiplying them unless the user re-enables the old behaviour.
             bool isVoid = false;
-            if (itemDef.tier == ItemTier.Void)
+            if (itemDef.tier >= ItemTier.VoidTier1 && itemDef.tier <= ItemTier.VoidBoss)
             {
                 isVoid = !fixVoidItems.Value ? false : true;
             }
