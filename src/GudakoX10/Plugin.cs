@@ -23,7 +23,7 @@ using RoR2;
 // back to the legacy postfix on Inventory.GiveItem(ItemIndex, int).
 namespace megidont
 {
-    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.6")]
+    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.8")]
     public class X10 : BaseUnityPlugin
     {
         private static ManualLogSource log;
@@ -117,23 +117,72 @@ namespace megidont
             multiplier = cfg.Bind("BasicConfig", "Multiplier", 10,
                 "Change this number to change pickup quantity.");
 
-            noMultiplyCommon = cfg.Bind("RarityFilter", "Don't multiply Common items", false,
+            noMultiplyCommon = cfg.Bind("RarityFilter", "Do not multiply Common items", false,
                 "If enabled, Common-tier items will NOT be multiplied on pickup.");
-            noMultiplyUncommon = cfg.Bind("RarityFilter", "Don't multiply Uncommon items", false,
+            noMultiplyUncommon = cfg.Bind("RarityFilter", "Do not multiply Uncommon items", false,
                 "If enabled, Uncommon-tier items will NOT be multiplied on pickup.");
-            noMultiplyLegendary = cfg.Bind("RarityFilter", "Don't multiply Legendary items", false,
+            noMultiplyLegendary = cfg.Bind("RarityFilter", "Do not multiply Legendary items", false,
                 "If enabled, Legendary-tier items will NOT be multiplied on pickup.");
-            noMultiplyLunar = cfg.Bind("RarityFilter", "Don't multiply Lunar items", false,
+            noMultiplyLunar = cfg.Bind("RarityFilter", "Do not multiply Lunar items", false,
                 "If enabled, Lunar-tier items will NOT be multiplied on pickup.");
-            noMultiplyVoid = cfg.Bind("RarityFilter", "Don't multiply Void items", false,
+            noMultiplyVoid = cfg.Bind("RarityFilter", "Do not multiply Void items", false,
                 "If enabled, Void-tier items will NOT be multiplied on pickup. (Void items are already skipped while 'Enable Void Item Fix' is on.)");
-            noMultiplyDistinguished = cfg.Bind("RarityFilter", "Don't multiply Shredder (Distinguished tier) items", false,
+            noMultiplyDistinguished = cfg.Bind("RarityFilter", "Do not multiply Distinguished items", false,
                 "If enabled, Distinguished-tier items (e.g. Shredder) will NOT be multiplied on pickup.");
-            noMultiplyRadioactive = cfg.Bind("RarityFilter", "Don't multiply Radioactive (Boss tier) items", false,
+            noMultiplyRadioactive = cfg.Bind("RarityFilter", "Do not multiply Radioactive items", false,
                 "If enabled, Radioactive/Boss-tier items will NOT be multiplied on pickup.");
 
             fixVoidItems = cfg.Bind("BasicConfig", "Enable Void Item Fix", true,
                 "During testing, the multiplier for void items ended up squaring the drop. Oops. Reenable if you want.");
+
+            // BepInEx only writes config sections that contain at least one
+            // setting whose value differs from its default. Since every
+            // rarity toggle defaults to false ("multiply everything"), a
+            // fresh install would show NO [RarityFilter] section at all and
+            // the user would never see the true/false options. We add a
+            // hidden marker entry with a deliberately non-default value so
+            // the whole section - including all seven toggles - is always
+            // persisted to disk on first launch.
+            cfg.Bind("RarityFilter", "SectionMarker", "present",
+                "Internal marker; keeps the [RarityFilter] section visible in this file. Do not remove.");
+
+            VerifyRarityFilterEntries(cfg);
+        }
+
+        // Diagnostic check (v1.0.7): after binding, verify the [RarityFilter]
+        // entries are actually registered in the loaded config so they show up
+        // in gudako.X10.cfg with their true/false defaults. If a stale config
+        // file from an older version is being reused and something prevented
+        // the new lines from being written, we log a clear warning telling the
+        // user to delete the file once. Uses LINQ over ConfigFile.ConfigLines
+        // because BepInEx 5.x exposes no public ContainsSetting API.
+        private static void VerifyRarityFilterEntries(ConfigFile cfg)
+        {
+            string[] keys =
+            {
+                "Do not multiply Common items",
+                "Do not multiply Uncommon items",
+                "Do not multiply Legendary items",
+                "Do not multiply Lunar items",
+                "Do not multiply Void items",
+                "Do not multiply Distinguished items",
+                "Do not multiply Radioactive items"
+            };
+
+            var defs = new System.Collections.Generic.HashSet<string>(
+                cfg.ConfigDefinitions.Select(d => d.Section + "/" + d.Key));
+
+            int present = keys.Count(k => defs.Contains("RarityFilter/" + k));
+
+            if (present == keys.Length)
+            {
+                log.LogInfo("[RarityFilter] all " + keys.Length + " rarity toggles are present in the config file.");
+                return;
+            }
+
+            log.LogWarning("[RarityFilter] only " + present + "/" + keys.Length +
+                " rarity toggles were found in the loaded config. If you don't see them in BepInEx/config/gudako.X10.cfg, " +
+                "delete that file and relaunch the game once - the full section will be regenerated.");
         }
 
         // Validates the embedded default forbidden-item list against the live
