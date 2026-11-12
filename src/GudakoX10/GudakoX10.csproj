@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <LangVersion>latest</LangVersion>
     <AssemblyName>Gudako-x10</AssemblyName>
     <Product>ExamplePlugin</Product>
@@ -17,5 +17,6 @@
     <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
     
     <PackageReference Include="UnityEngine.Modules" Version="2019.4.36" PrivateAssets="all" ExcludeAssets="runtime" />
+    <PackageReference Include="RiskOfRain2.GameLibs" Version="1.5.0-r.1" PrivateAssets="all" ExcludeAssets="runtime" />
   </ItemGroup>
 </Project>
