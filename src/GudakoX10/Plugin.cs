@@ -22,18 +22,28 @@ using RoR2;
 // back to the legacy postfix on Inventory.GiveItem(ItemIndex, int).
 namespace megidont
 {
-    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.4")]
+    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.5")]
     public class X10 : BaseUnityPlugin
     {
         private static ManualLogSource log;
 
         private static ConfigEntry<int> multiplier;
-        private static ConfigEntry<string> forbiddenItems;
         private static ConfigEntry<bool> fixVoidItems;
-        private static ConfigEntry<bool> enableIndex109;
-        private static ConfigEntry<bool> enableIndex167;
-        private static ConfigEntry<bool> enableIndex168;
-        private static ConfigEntry<bool> enableIndex176;
+
+        // Internal, no longer exposed in the config file (kept as plain
+        // fields so the filtering logic stays identical to earlier versions).
+        private static readonly string forbiddenList = defaultForbiddenItems;
+
+        // Rarity (tier) filters: when one of these is enabled, items of that
+        // tier are NOT multiplied. Void tiers are controlled by "Enable Void
+        // Item Fix" (kept as-is for backwards compatibility).
+        private static ConfigEntry<bool> noMultiplyCommon;
+        private static ConfigEntry<bool> noMultiplyUncommon;
+        private static ConfigEntry<bool> noMultiplyLegendary;
+        private static ConfigEntry<bool> noMultiplyLunar;
+        private static ConfigEntry<bool> noMultiplyVoid;
+        private static ConfigEntry<bool> noMultiplyDistinguished;
+        private static ConfigEntry<bool> noMultiplyRadioactive;
 
         // The internally-used enemy items that should never be multiplied.
         private static readonly string defaultForbiddenItems =
@@ -93,20 +103,31 @@ namespace megidont
 
         private static void InitConfig(ConfigFile cfg)
         {
+            // The "Forbidden Item List" and "EnableByIndex" entries are hidden
+            // from the generated config file: we simply don't bind them, so
+            // BepInEx never writes them to disk. Their logic still runs with
+            // built-in defaults (see defaultForbiddenItems / the index checks
+            // in ShouldMultiply).
             multiplier = cfg.Bind("BasicConfig", "Multiplier", 10,
                 "Change this number to change pickup quantity.");
-            forbiddenItems = cfg.Bind("BasicConfig", "Forbidden Item List", defaultForbiddenItems,
-                "Change this list to change which items aren't multiplied. By default, this contains internally used enemy items. You can find a list of internal item names at https://github.com/risk-of-thunder/R2Wiki/wiki/Item-&-Equipment-IDs-and-Names - from there it should be fairly easy to figure out the rest!");
+
+            noMultiplyCommon = cfg.Bind("RarityFilter", "Don't multiply Common items", false,
+                "If enabled, Common-tier items will NOT be multiplied on pickup.");
+            noMultiplyUncommon = cfg.Bind("RarityFilter", "Don't multiply Uncommon items", false,
+                "If enabled, Uncommon-tier items will NOT be multiplied on pickup.");
+            noMultiplyLegendary = cfg.Bind("RarityFilter", "Don't multiply Legendary items", false,
+                "If enabled, Legendary-tier items will NOT be multiplied on pickup.");
+            noMultiplyLunar = cfg.Bind("RarityFilter", "Don't multiply Lunar items", false,
+                "If enabled, Lunar-tier items will NOT be multiplied on pickup.");
+            noMultiplyVoid = cfg.Bind("RarityFilter", "Don't multiply Void items", false,
+                "If enabled, Void-tier items will NOT be multiplied on pickup. (Void items are already skipped while 'Enable Void Item Fix' is on.)");
+            noMultiplyDistinguished = cfg.Bind("RarityFilter", "Don't multiply Shredder (Distinguished tier) items", false,
+                "If enabled, Distinguished-tier items (e.g. Shredder) will NOT be multiplied on pickup.");
+            noMultiplyRadioactive = cfg.Bind("RarityFilter", "Don't multiply Radioactive (Boss tier) items", false,
+                "If enabled, Radioactive/Boss-tier items will NOT be multiplied on pickup.");
+
             fixVoidItems = cfg.Bind("BasicConfig", "Enable Void Item Fix", true,
                 "During testing, the multiplier for void items ended up squaring the drop. Oops. Reenable if you want.");
-            enableIndex109 = cfg.Bind("EnableByIndex", "Enable multiplication of MinHealthPercentage", false,
-                "Because these items do not have nameTokens, we have options here in case you wanna enable them.");
-            enableIndex167 = cfg.Bind("EnableByIndex", "Enable multiplication of TeamSizeDamageBonus", false,
-                "Because these items do not have nameTokens, we have options here in case you wanna enable them.");
-            enableIndex168 = cfg.Bind("EnableByIndex", "Enable multiplication of TeleportWhenOob", false,
-                "Because these items do not have nameTokens, we have options here in case you wanna enable them.");
-            enableIndex176 = cfg.Bind("EnableByIndex", "Enable multiplication of UseAmbientLevel", false,
-                "Because these items do not have nameTokens, we have options here in case you wanna enable them.");
         }
 
         // Validates the embedded default forbidden-item list against the live
@@ -163,29 +184,70 @@ namespace megidont
         // should be multiplied.
         internal static bool ShouldMultiply(ItemIndex itemIndex)
         {
-            int[] disabledIndexes = new int[4];
-            if (!enableIndex109.Value) disabledIndexes[0] = 109;
-            if (!enableIndex167.Value) disabledIndexes[1] = 167;
-            if (!enableIndex168.Value) disabledIndexes[2] = 168;
-            if (!enableIndex176.Value) disabledIndexes[3] = 176;
-
-            bool byIndex = disabledIndexes.Contains((int)itemIndex);
+            // Internal items without nameTokens are never multiplied (the
+            // old "EnableByIndex" config toggles were removed; these remain
+            // permanently disabled for safety).
+            int idx = (int)itemIndex;
+            if (idx == 109 || idx == 167 || idx == 168 || idx == 176) return false;
 
             ItemDef itemDef = ItemCatalog.GetItemDef(itemIndex);
-            if (itemDef == null) return !byIndex;
+            if (itemDef == null) return true;
 
-            // Void items were double-multiplied (the unlock counts as a give);
-            // skip multiplying them unless the user re-enables the old behaviour.
-            bool isVoid = false;
-            if (itemDef.tier >= ItemTier.VoidTier1 && itemDef.tier <= ItemTier.VoidBoss)
+            // Rarity (tier) filters from the RarityFilter config section.
+            switch (itemDef.tier)
             {
-                isVoid = fixVoidItems.Value;
+                case ItemTier.Tier1: // Common
+                    if (noMultiplyCommon.Value) return false;
+                    break;
+                case ItemTier.Tier2: // Uncommon
+                    if (noMultiplyUncommon.Value) return false;
+                    break;
+                case ItemTier.Tier3: // Legendary
+                    if (noMultiplyLegendary.Value) return false;
+                    break;
+                case ItemTier.Lunar:
+                    if (noMultiplyLunar.Value) return false;
+                    break;
+                case ItemTier.Boss: // Radioactive
+                    if (noMultiplyRadioactive.Value) return false;
+                    break;
+                case ItemTier.VoidTier1:
+                case ItemTier.VoidTier2:
+                case ItemTier.VoidTier3:
+                case ItemTier.VoidBoss:
+                    if (noMultiplyVoid.Value) return false;
+                    // Void items were double-multiplied (the unlock counts as a
+                    // give); skip multiplying them unless the user re-enables
+                    // the old behaviour.
+                    if (fixVoidItems.Value) return false;
+                    break;
             }
 
-            if (forbiddenItems.Value.Contains(itemDef.nameToken.ToString()) || byIndex || isVoid)
+            // Distinguished tier is assigned at runtime in some content packs;
+            // check it by name token group as well as enum value.
+            if (itemDef.tier == ItemTier.AssignedAtRuntime && IsDistinguished(itemDef))
+            {
+                if (noMultiplyDistinguished.Value) return false;
+            }
+
+            if (forbiddenList.Contains(itemDef.nameToken.ToString()))
                 return false;
 
             return true;
+        }
+
+        // Best-effort check for the Distinguished (Shredder) tier on builds
+        // where tiers are resolved dynamically instead of via the enum.
+        private static bool IsDistinguished(ItemDef itemDef)
+        {
+            try
+            {
+                var field = typeof(ItemTier).GetField("Distinguished");
+                if (field != null && itemDef.tier == (ItemTier)field.GetValue(null))
+                    return true;
+            }
+            catch { }
+            return false;
         }
 
         internal static int MultiplierValue
