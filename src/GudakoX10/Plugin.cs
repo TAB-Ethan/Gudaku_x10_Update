@@ -22,7 +22,7 @@ using RoR2;
 // back to the legacy postfix on Inventory.GiveItem(ItemIndex, int).
 namespace megidont
 {
-    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.3")]
+    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.4")]
     public class X10 : BaseUnityPlugin
     {
         private static ManualLogSource log;
@@ -128,6 +128,12 @@ namespace megidont
             string expected = string.Concat(strings).TrimEnd(',');
 
             if (defaultForbiddenItems == expected) return;
+
+            // If EVERY token resolved empty, the item catalog wasn't populated
+            // yet at Start() time (e.g. a load-order quirk or stripped content
+            // registration). That's a false alarm, not a real mismatch - don't
+            // spam the fatal message, just skip silently.
+            if (expected.Length == 0) return;
 
             log.LogFatal("Critical Error:\nThe current default forbidden item list is NOT CORRECT.\n(this is not the one in your config, this should only happen if something goes horribly wrong.)\nThe current default set is "
                 + defaultForbiddenItems

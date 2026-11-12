@@ -3,7 +3,7 @@
     "AuthorName": "Gudako",
     "Name": "Gudako_x10",
     "DisplayName": "Gudako-x10",
-    "Version": "1.0.3",
+    "Version": "1.0.4",
     "WebsiteURL": "https://github.com/Gudak0",
     "Description": "A mod that multiplies pickups by a configurable amount",
     "Dependencies": [
@@ -16,7 +16,7 @@
         "bepinex"
     ],
     "name": "Gudako_x10",
-    "version_number": "1.0.3",
+    "version_number": "1.0.4",
     "website_url": "https://github.com/Gudak0",
     "description": "A mod that multiplies pickups by a configurable amount.",
     "dependencies": [
