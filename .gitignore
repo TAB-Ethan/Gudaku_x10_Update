@@ -1,1 +1,6 @@
-*.bundle
+obj/
+bin/
+
+gudako-x10-*.bundle
+src/*/bin/
+src/*/obj/
