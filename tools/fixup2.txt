@@ -1,0 +1,274 @@
+===== Awake =====
+ldtoken ; X10
+call ; System.Type.GetTypeFromHandle
+ldstr ; STRING "X10"
+call ; HarmonyLib.Harmony.CreateAndPatchAll
+pop
+ldarg.0
+ldsfld ; config
+call ; InitConfig
+ret
+===== InitConfig =====
+ldarg.1
+stsfld ; config
+ldarg.0
+call ; BepInEx.BaseUnityPlugin.get_Config
+ldstr ; STRING "merable`1"
+ldstr ; STRING "Int32"
+ldc.i4.s (10)
+ldstr ; STRING "ayInitTypeSize=16"
+callvirt ; tok:0x2b000001
+stsfld ; multiplier
+ldarg.0
+call ; BepInEx.BaseUnityPlugin.get_Config
+ldstr ; STRING "merable`1"
+ldstr ; STRING "ateImplementationDetails>"
+ldsfld ; defaultForbiddenItems
+ldstr ; STRING "6D0B29CCA3F3323A2D22265B9EB74D5E14B56CA2FEF70AD73F"
+callvirt ; tok:0x2b000002
+stsfld ; forbiddenItems
+ldarg.0
+call ; BepInEx.BaseUnityPlugin.get_Config
+ldstr ; STRING "merable`1"
+ldstr ; STRING "Attribute"
+ldc.i4.1
+ldstr ; STRING "CompatibilityAttribute"
+callvirt ; tok:0x2b000003
+stsfld ; fixVoidItems
+ldarg.0
+call ; BepInEx.BaseUnityPlugin.get_Config
+ldstr ; STRING "ateAndPatchAll"
+ldstr ; STRING ".dll"
+ldc.i4.0
+ldstr ; STRING "ration"
+callvirt ; tok:0x2b000003
+stsfld ; enableIndex109
+ldarg.0
+call ; BepInEx.BaseUnityPlugin.get_Config
+ldstr ; STRING "ateAndPatchAll"
+ldstr ; STRING "or"
+ldc.i4.0
+ldstr ; STRING "ration"
+callvirt ; tok:0x2b000003
+stsfld ; enableIndex167
+ldarg.0
+call ; BepInEx.BaseUnityPlugin.get_Config
+ldstr ; STRING "ateAndPatchAll"
+ldstr ; STRING "idItems"
+ldc.i4.0
+ldstr ; STRING "ration"
+callvirt ; tok:0x2b000003
+stsfld ; enableIndex168
+ldarg.0
+call ; BepInEx.BaseUnityPlugin.get_Config
+ldstr ; STRING "ateAndPatchAll"
+ldstr ; STRING "y.Permissions"
+ldc.i4.0
+ldstr ; STRING "ration"
+callvirt ; tok:0x2b000003
+stsfld ; enableIndex176
+ret
+===== Initialize =====
+ldc.i4.s (39)
+newarr ; String
+dup
+ldc.i4.0
+ldsfld ; Items.AdaptiveArmor
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.1
+ldstr ; STRING "dont"
+stelem.ref
+dup
+ldc.i4.2
+ldsfld ; Items.BoostAttackSpeed
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.3
+ldstr ; STRING "dont"
+stelem.ref
+dup
+ldc.i4.4
+ldsfld ; Items.BoostDamage
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.5
+ldstr ; STRING "dont"
+stelem.ref
+dup
+ldc.i4.6
+ldsfld ; Items.BoostEquipmentRecharge
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.7
+ldstr ; STRING "dont"
+stelem.ref
+dup
+ldc.i4.8
+ldsfld ; Items.BoostHp
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (9)
+ldstr ; STRING "dont"
+stelem.ref
+dup
+ldc.i4.s (10)
+ldsfld ; Items.CrippleWardOnLevel
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (11)
+ldstr ; STRING "dont"
+stelem.ref
+dup
+ldc.i4.s (12)
+ldsfld ; Items.CutHp
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (13)
+ldstr ; STRING "dont"
+stelem.ref
+dup
+ldc.i4.s (14)
+ldsfld ; Items.DrizzlePlayerHelper
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (15)
+ldstr ; STRING "dont"
+stelem.ref
+dup
+ldc.i4.s (16)
+ldsfld ; Items.ExtraLifeConsumed
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (17)
+ldstr ; STRING "dont"
+stelem.ref
+dup
+ldc.i4.s (18)
+ldsfld ; Items.Ghost
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (19)
+ldstr ; STRING "dont"
+stelem.ref
+dup
+ldc.i4.s (20)
+ldsfld ; Items.HealthDecay
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (21)
+ldstr ; STRING "dont"
+stelem.ref
+dup
+ldc.i4.s (22)
+ldsfld ; Items.InvadingDoppelganger
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (23)
+ldstr ; STRING "dont"
+stelem.ref
+dup
+ldc.i4.s (24)
+ldsfld ; Items.LevelBonus
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (25)
+ldstr ; STRING "dont"
+stelem.ref
+dup
+ldc.i4.s (26)
+ldsfld ; Items.MinionLeash
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (27)
+ldstr ; STRING "dont"
+stelem.ref
+dup
+ldc.i4.s (28)
+ldsfld ; Items.MonsoonPlayerHelper
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (29)
+ldstr ; STRING "dont"
+stelem.ref
+dup
+ldc.i4.s (30)
+ldsfld ; Items.ScrapGreen
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (31)
+ldstr ; STRING "dont"
+stelem.ref
+dup
+ldc.i4.s (32)
+ldsfld ; Items.ScrapRed
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (33)
+ldstr ; STRING "dont"
+stelem.ref
+dup
+ldc.i4.s (34)
+ldsfld ; Items.ScrapWhite
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (35)
+ldstr ; STRING "dont"
+stelem.ref
+dup
+ldc.i4.s (36)
+ldsfld ; Items.ScrapYellow
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+dup
+ldc.i4.s (37)
+ldstr ; STRING "dont"
+stelem.ref
+dup
+ldc.i4.s (38)
+ldsfld ; Items.SkullCounter
+ldfld ; RoR2.ItemDef.nameToken
+stelem.ref
+call ; System.String.Concat
+stloc.0
+ldsfld ; defaultForbiddenItems
+ldloc.0
+call ; System.String.op_Inequality
+brtrue.s (1357)
+ret
+ldsfld ; log
+ldc.i4.5
+newarr ; String
+dup
+ldc.i4.0
+ldstr ; STRING ""
+stelem.ref
+dup
+ldc.i4.1
+ldsfld ; defaultForbiddenItems
+stelem.ref
+dup
+ldc.i4.2
+Traceback (most recent call last):
+  File "<stdin>", line 63, in <module>
+  File "<stdin>", line 30, in get_token_string
+  File "<stdin>", line 15, in gs
+ValueError: subsection not found

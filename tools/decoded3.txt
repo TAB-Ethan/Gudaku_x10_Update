@@ -1,0 +1,159 @@
+=== TypeRef ===
+TR1: [] System.Runtime.CompilerServices.CompilationRelaxationsAttribute
+TR2: [] System.Runtime.CompilerServices.RuntimeCompatibilityAttribute
+TR3: [] System.Diagnostics.DebuggableAttribute
+TR4: [] .DebuggingModes
+TR5: [] System.Runtime.Versioning.TargetFrameworkAttribute
+TR6: [] System.Reflection.AssemblyCompanyAttribute
+TR7: [] System.Reflection.AssemblyConfigurationAttribute
+TR8: [] System.Reflection.AssemblyFileVersionAttribute
+TR9: [] System.Reflection.AssemblyInformationalVersionAttribute
+TR10: [] System.Reflection.AssemblyProductAttribute
+TR11: [] System.Reflection.AssemblyTitleAttribute
+TR12: [] System.Security.Permissions.SecurityAction
+TR13: [] System.Security.Permissions.SecurityPermissionAttribute
+TR14: [] System.Security.UnverifiableCodeAttribute
+TR15: [] BepInEx.BepInDependency
+TR16: [] .DependencyFlags
+TR17: [] BepInEx.BepInPlugin
+TR18: [] HarmonyLib.HarmonyPatch
+TR19: [] BepInEx.BaseUnityPlugin
+TR20: [] BepInEx.Logging.ManualLogSource
+TR21: [] BepInEx.Configuration.ConfigFile
+TR22: [] BepInEx.Configuration.ConfigEntry`1
+TR23: [] HarmonyLib.HarmonyPostfix
+TR24: [] System.Type
+TR25: [] RoR2.ItemCatalog
+TR26: [] HarmonyLib.HarmonyPrefix
+TR27: [] RoR2.Inventory
+TR28: [] RoR2.ItemIndex
+TR29: [] RoR2.ItemDef
+TR30: [] System.Runtime.CompilerServices.CompilerGeneratedAttribute
+TR31: [] System.Object
+TR32: [] System.ValueType
+TR33: [] System.RuntimeTypeHandle
+TR34: [] HarmonyLib.Harmony
+TR35: [] System.String
+TR36: [] RoR2.RoR2Content
+TR37: [] .Items
+TR38: [] RoR2.JunkContent
+TR39: [] .Items
+TR40: [] System.Int32
+TR41: [] RoR2.ItemTier
+TR42: [] System.Runtime.CompilerServices.RuntimeHelpers
+TR43: [] System.Array
+TR44: [] System.RuntimeFieldHandle
+TR45: [] System.Linq.Enumerable
+TR46: [] System.Collections.Generic.IEnumerable`1
+
+=== MethodDef ===
+M1: Awake RVA=0x2050 sig=200001 flags=
+M2: InitConfig RVA=0x2074 sig=2001011255 flags=
+M3: Initialize RVA=0x216C sig=000001 flags=static
+M4: multiplyItems RVA=0x2388 sig=00020111711008 flags=static
+M5: .ctor RVA=0x244F sig=200001 flags=
+M6: .cctor RVA=0x2457 sig=000001 flags=static
+
+=== Params (all) ===
+P1: seq=1 name=cfg
+P2: seq=1 name=itemIndex
+P3: seq=2 name=count
+
+=== MemberRef ===
+MR1 (tok 0x0A000001): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8dbb0> :: .ctor sig=20010108
+MR2 (tok 0x0A000002): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8dca0> :: .ctor sig=200001
+MR3 (tok 0x0A000003): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8dd00> :: .ctor sig=2001011111
+MR4 (tok 0x0A000004): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8ddc0> :: .ctor sig=2001010e
+MR5 (tok 0x0A000005): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8de20> :: .ctor sig=2001010e
+MR6 (tok 0x0A000006): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8de80> :: .ctor sig=2001010e
+MR7 (tok 0x0A000007): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8dee0> :: .ctor sig=2001010e
+MR8 (tok 0x0A000008): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8df40> :: .ctor sig=2001010e
+MR9 (tok 0x0A000009): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8dfa0> :: .ctor sig=2001010e
+MR10 (tok 0x0A00000A): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e000> :: .ctor sig=2001010e
+MR11 (tok 0x0A00000B): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e0c0> :: .ctor sig=2001011131
+MR12 (tok 0x0A00000C): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e120> :: .ctor sig=200001
+MR13 (tok 0x0A00000D): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e180> :: .ctor sig=2002010e1141
+MR14 (tok 0x0A00000E): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e240> :: .ctor sig=2003010e0e0e
+MR15 (tok 0x0A00000F): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e2a0> :: .ctor sig=200001
+MR16 (tok 0x0A000010): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e480> :: .ctor sig=200001
+MR17 (tok 0x0A000011): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e2a0> :: .ctor sig=20020112610e
+MR18 (tok 0x0A000012): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e5a0> :: .ctor sig=200001
+MR19 (tok 0x0A000013): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e2a0> :: .ctor sig=20030112610e1d1261
+MR20 (tok 0x0A000014): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e720> :: .ctor sig=200001
+MR21 (tok 0x0A000015): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e4e0> :: GetTypeFromHandle sig=00011261118085
+MR22 (tok 0x0A000016): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e8a0> :: CreateAndPatchAll sig=000212808912610e
+MR23 (tok 0x0A000017): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e300> :: get_Config sig=20001255
+MR24 (tok 0x0A000018): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e3c0> :: Bind sig=300104151259011e000e0e1e000e
+MR25 (tok 0x0A000019): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e9c0> :: AdaptiveArmor sig=061275
+MR26 (tok 0x0A00001A): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e6c0> :: nameToken sig=060e
+MR27 (tok 0x0A00001B): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e9c0> :: BoostAttackSpeed sig=061275
+MR28 (tok 0x0A00001C): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e9c0> :: BoostDamage sig=061275
+MR29 (tok 0x0A00001D): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e9c0> :: BoostEquipmentRecharge sig=061275
+MR30 (tok 0x0A00001E): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e9c0> :: BoostHp sig=061275
+MR31 (tok 0x0A00001F): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e9c0> :: CrippleWardOnLevel sig=061275
+MR32 (tok 0x0A000020): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e9c0> :: CutHp sig=061275
+MR33 (tok 0x0A000021): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e9c0> :: DrizzlePlayerHelper sig=061275
+MR34 (tok 0x0A000022): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e9c0> :: ExtraLifeConsumed sig=061275
+MR35 (tok 0x0A000023): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e9c0> :: Ghost sig=061275
+MR36 (tok 0x0A000024): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e9c0> :: HealthDecay sig=061275
+MR37 (tok 0x0A000025): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e9c0> :: InvadingDoppelganger sig=061275
+MR38 (tok 0x0A000026): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e9c0> :: LevelBonus sig=061275
+MR39 (tok 0x0A000027): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e9c0> :: MinionLeash sig=061275
+MR40 (tok 0x0A000028): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e9c0> :: MonsoonPlayerHelper sig=061275
+MR41 (tok 0x0A000029): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e9c0> :: ScrapGreen sig=061275
+MR42 (tok 0x0A00002A): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e9c0> :: ScrapRed sig=061275
+MR43 (tok 0x0A00002B): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e9c0> :: ScrapWhite sig=061275
+MR44 (tok 0x0A00002C): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e9c0> :: ScrapYellow sig=061275
+MR45 (tok 0x0A00002D): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8ea80> :: SkullCounter sig=061275
+MR46 (tok 0x0A00002E): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e900> :: Concat sig=00010e1d0e
+MR47 (tok 0x0A00002F): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e900> :: op_Inequality sig=0002020e0e
+MR48 (tok 0x0A000030): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e360> :: LogFatal sig=2001011c
+MR49 (tok 0x0A000031): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e540> :: GetItemDef sig=000112751171
+MR50 (tok 0x0A000032): <dnfile.mdtable.TypeSpec object at 0x7fd74ca8f890><dnfile.mdtable.TypeSpecRow object at 0x7fd74caadb80> :: get_Value sig=20001300
+MR51 (tok 0x0A000033): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8eba0> :: InitializeArray sig=0002011280ad1180b1
+MR52 (tok 0x0A000034): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8ecc0> :: Contains sig=10010202151280b9011e001e00
+MR53 (tok 0x0A000035): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e6c0> :: get_tier sig=20001180a5
+MR54 (tok 0x0A000036): <dnfile.mdtable.TypeSpec object at 0x7fd74ca8f890><dnfile.mdtable.TypeSpecRow object at 0x7fd74caadc40> :: get_Value sig=20001300
+MR55 (tok 0x0A000037): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e900> :: Contains sig=2001020e
+MR56 (tok 0x0A000038): <dnfile.mdtable.TypeSpec object at 0x7fd74ca8f890><dnfile.mdtable.TypeSpecRow object at 0x7fd74caadcd0> :: get_Value sig=20001300
+MR57 (tok 0x0A000039): <dnfile.mdtable.TypeRef object at 0x7fd74d04b650><dnfile.mdtable.TypeRefRow object at 0x7fd74ca8e300> :: .ctor sig=200001
+
+=== TypeSpec ===
+TS1 (tok 0x1B000001): 1512590102
+TS2 (tok 0x1B000002): 151259010e
+TS3 (tok 0x1B000003): 1512590108
+
+=== MethodSpec ===
+MS1 (tok 0x2B000001): ? inst=0a0108
+MS2 (tok 0x2B000002): ? inst=0a010e
+MS3 (tok 0x2B000003): ? inst=0a0102
+MS4 (tok 0x2B000004): ? inst=0a0108
+MS5 (tok 0x2B000005): ? inst=0a011180a5
+
+=== CustomAttribute ===
+CA1: <dnfile.mdtable.Module object at 0x7fd74cfdcb00><dnfile.mdtable.ModuleRow object at 0x7fd74ca8db20> <- ? ctor_sig= val=01000000
+CA2: <dnfile.mdtable.Assembly object at 0x7fd74ca8d9d0><dnfile.mdtable.AssemblyRow object at 0x7fd74caadeb0> <- ? ctor_sig= val=0100080000000000
+CA3: <dnfile.mdtable.Assembly object at 0x7fd74ca8d9d0><dnfile.mdtable.AssemblyRow object at 0x7fd74caadeb0> <- ? ctor_sig= val=01000100540216577261704e6f6e457863657074696f6e5468726f777301
+CA4: <dnfile.mdtable.Assembly object at 0x7fd74ca8d9d0><dnfile.mdtable.AssemblyRow object at 0x7fd74caadeb0> <- ? ctor_sig= val=0100020000000000
+CA5: <dnfile.mdtable.Assembly object at 0x7fd74ca8d9d0><dnfile.mdtable.AssemblyRow object at 0x7fd74caadeb0> <- ? ctor_sig= val=0100192e4e45545374616e646172642c56657273696f6e3d76322e300100540e144672616d65776f726b446973706c61794e616d6500
+CA6: <dnfile.mdtable.Assembly object at 0x7fd74ca8d9d0><dnfile.mdtable.AssemblyRow object at 0x7fd74caadeb0> <- ? ctor_sig= val=01000d4578616d706c65506c7567696e0000
+CA7: <dnfile.mdtable.Assembly object at 0x7fd74ca8d9d0><dnfile.mdtable.AssemblyRow object at 0x7fd74caadeb0> <- ? ctor_sig= val=01000752656c656173650000
+CA8: <dnfile.mdtable.Assembly object at 0x7fd74ca8d9d0><dnfile.mdtable.AssemblyRow object at 0x7fd74caadeb0> <- ? ctor_sig= val=010007312e302e302e300000
+CA9: <dnfile.mdtable.Assembly object at 0x7fd74ca8d9d0><dnfile.mdtable.AssemblyRow object at 0x7fd74caadeb0> <- ? ctor_sig= val=010005312e302e300000
+CA10: <dnfile.mdtable.Assembly object at 0x7fd74ca8d9d0><dnfile.mdtable.AssemblyRow object at 0x7fd74caadeb0> <- ? ctor_sig= val=01000d4578616d706c65506c7567696e0000
+CA11: <dnfile.mdtable.Assembly object at 0x7fd74ca8d9d0><dnfile.mdtable.AssemblyRow object at 0x7fd74caadeb0> <- ? ctor_sig= val=01000d4578616d706c65506c7567696e0000
+CA12: <dnfile.mdtable.TypeDef object at 0x7fd74ca8d910><dnfile.mdtable.TypeDefRow object at 0x7fd74ca8eed0> <- ? ctor_sig= val=01000f636f6d2e62657069732e7232617069010000000000
+CA13: <dnfile.mdtable.TypeDef object at 0x7fd74ca8d910><dnfile.mdtable.TypeDefRow object at 0x7fd74ca8eed0> <- ? ctor_sig= val=01000a677564616b6f2e5831300e313078205069636b7570204d6f6405312e302e300000
+CA14: <dnfile.mdtable.TypeDef object at 0x7fd74ca8d910><dnfile.mdtable.TypeDefRow object at 0x7fd74ca8eed0> <- ? ctor_sig= val=01000000
+CA15: <dnfile.mdtable.MethodDef object at 0x7fd74ca8d940><dnfile.mdtable.MethodDefRow object at 0x7fd74ca8f650> <- ? ctor_sig= val=01000000
+CA16: <dnfile.mdtable.MethodDef object at 0x7fd74ca8d940><dnfile.mdtable.MethodDefRow object at 0x7fd74ca8f650> <- ? ctor_sig= val=01004d526f52322e4974656d436174616c6f672c20526f52322c2056657273696f6e3d302e302e302e302c2043756c747572653d6e65757472616c2c205075626c69634b6579546f6b656e3d6e756c6c04496e69740000
+CA17: <dnfile.mdtable.TypeDef object at 0x7fd74ca8d910><dnfile.mdtable.TypeDefRow object at 0x7fd74ca8ef30> <- ? ctor_sig= val=01000000
+CA18: <dnfile.mdtable.MethodDef object at 0x7fd74ca8d940><dnfile.mdtable.MethodDefRow object at 0x7fd74ca8f6b0> <- ? ctor_sig= val=01000000
+CA19: <dnfile.mdtable.MethodDef object at 0x7fd74ca8d940><dnfile.mdtable.MethodDefRow object at 0x7fd74ca8f6b0> <- ? ctor_sig= val=01004b526f52322e496e76656e746f72792c20526f52322c2056657273696f6e3d302e302e302e302c2043756c747572653d6e65757472616c2c205075626c69634b6579546f6b656e3d6e756c6c08476976654974656d020000004b526f52322e4974656d496e6465782c20526f52322c2056657273696f6e3d302e302e302e302c2043756c747572653d6e65757472616c2c205075626c69634b6579546f6b656e3d6e756c6c5c53797374656d2e496e7433322c206e65747374616e646172642c2056657273696f6e3d322e302e302e302c2043756c747572653d6e65757472616c2c205075626c69634b6579546f6b656e3d636337623133666663643264646435310000
+
+=== FieldRva ===
+Traceback (most recent call last):
+  File "/workspace/tools/decode3.py", line 100, in <module>
+    fld = md.Field.rows[fr-1]
+                        ~~^~
+TypeError: unsupported operand type(s) for -: 'FieldRow' and 'int'
