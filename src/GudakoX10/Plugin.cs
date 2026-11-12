@@ -1,29 +1,30 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 using RoR2;
+using System.Reflection.Emit; // CodeInstruction/OpCode live here in Lib.Harmony (HarmonyX)
 
 // Reconstructed source for Gudako-x10.dll (namespace megidont, class X10).
 // Reverse-engineered from the shipped binary and rebuilt against modern
 // Risk of Rain 2 APIs.
 //
-// NOTE ON PATCHING: Since the Sep-2025 recompile, every public Inventory item
-// method is a stripped stub whose body throws, so compile-time patches on
-// GiveItem fail to apply ("Parameter \"count\" not found") or do nothing. All
-// give/pickup paths now funnel through the internal generic
-// Inventory.ChangeItemStacksCount<TImpl>, which mutates stacks by calling
-// ItemCollection.Add(itemIndex, count) on the relevant collection. We resolve
-// ItemCollection.Add via reflection at load time and install a Harmony prefix
-// that multiplies `count`. If it cannot be found (older game layouts), we fall
-// back to the legacy postfix on Inventory.GiveItem(ItemIndex, int).
+// NOTE ON PATCHING: The current game's Inventory.GiveItem(ItemIndex, int)
+// overload takes the count BY VALUE, so a normal prefix/postfix cannot modify
+// it (prefix ref params fail with "Parameter ... not found"; postfix ref to a
+// value param throws at IL-emit time), and DynamicMethod-based prefixes are
+// rejected by HarmonyX ("Cannot directly reference dynamic method"). We
+// therefore use a transpiler that rewrites the raw IL of each give overload,
+// injecting `count = MultiplyTranspiled(itemDefOrIndex, count)` right before
+// the first Stloc of the count local. Transpiler manipulation is positional,
+// so it is immune to parameter-name binding issues entirely.
 namespace megidont
 {
-    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.8")]
+    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.9")]
     public class X10 : BaseUnityPlugin
     {
         private static ManualLogSource log;
@@ -97,12 +98,7 @@ namespace megidont
             patchedAny |= TryPatchGive(harmony, "GiveItemRented", new[] { typeof(ItemIndex), typeof(int) });
 
             if (!patchedAny)
-            {
-                // Last-resort fallback for very old game layouts where only
-                // the postfix hook worked.
-                log.LogWarning("No GiveItem overloads found; falling back to legacy postfix patch.");
-                harmony.PatchAll(typeof(X10));
-            }
+                log.LogError("Could not find any Inventory give methods to patch - item multiplication is DISABLED on this game build.");
 
             log.LogInfo("10x Pickup Mod loaded!");
         }
@@ -228,50 +224,54 @@ namespace megidont
             return def ? def.nameToken.ToString() : string.Empty;
         }
 
-        // Installs a multiply prefix on Inventory.<name>(<types>). HarmonyX
-        // binds patch parameters by NAME, and recent game recompiles renamed
-        // the count parameter ("count" -> "countToAdd"), so we emit a tiny
-        // DynamicMethod per target whose parameter names are taken from the
-        // actual game method. Returns false (without throwing) when the
-        // overload doesn't exist in this game build.
+        // Installs a multiply prefix on Inventory.<name>(<types>). The count
+        // parameter is passed BY VALUE in the real game, so we cannot mutate
+        // it from a normal prefix; instead we emit (at runtime, via
+        // Reflection.Emit) a tiny DynamicMethod whose parameter NAMES are
+        // copied verbatim from the target method and whose count parameter is
+        // declared `ref int`. HarmonyX binds patch parameters by name, so the
+        // generated method always matches whatever the current game build
+        // calls the argument ("count", "countToAdd", ...), and declaring it
+        // ref lets us scale it. If the emitted prefix fails to apply for any
+        // reason, we fall back to a transpiler that rewrites the IL of the
+        // first "Ldarg <count>; Stloc x" pair into a MultiplyFromIndex call.
+        // Returns false (without throwing) when the overload doesn't exist in
+        // this game build.
         private static bool TryPatchGive(Harmony harmony, string name, Type[] types)
         {
             MethodInfo target = AccessTools.Method(typeof(Inventory), name, types);
             if (target == null) return false;
 
             ParameterInfo[] ps = target.GetParameters();
-            int itemPos = Array.FindIndex(ps, p => p.ParameterType == typeof(ItemIndex));
+            int itemPos = Array.FindIndex(ps, p => p.ParameterType == typeof(ItemIndex)
+                                                || p.ParameterType == typeof(ItemDef));
             int countPos = Array.FindIndex(ps, p => p.ParameterType == typeof(int));
             if (itemPos < 0 || countPos < 0) return false;
 
-            Type[] paramTypes =
+            // v1.0.9 fix: the previous version tried to apply a runtime-
+            // generated DynamicMethod as a Harmony prefix. HarmonyX rejects
+            // that with "Cannot directly reference dynamic method ... Use a
+            // factory method instead", so no patches were ever installed and
+            // pickups were never multiplied. The only supported approach for
+            // by-value count parameters is a transpiler on a normal static
+            // method — which is exactly what we install now, unconditionally.
+            bool itemIsDef = ps[itemPos].ParameterType == typeof(ItemDef);
+
+            // Arg slots are 1-based for instance methods (slot 0 is `this`).
+            MultiplyTranspiler.Register(target, itemPos + 1, countPos + 1, itemIsDef);
+
+            var tm = new HarmonyMethod(typeof(MultiplyTranspiler), nameof(MultiplyTranspiler.Transpile));
+            try
             {
-                ps[itemPos].ParameterType,                      // ItemIndex
-                ps[countPos].ParameterType.MakeByRefType()      // ref int count
-            };
-
-            DynamicMethod prefix = new DynamicMethod(
-                "GudakoX10_Prefix_" + name + "_" + countPos,
-                MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig,
-                CallingConventions.Standard,
-                typeof(bool),                                   // return: run original
-                paramTypes,
-                typeof(MultiplyPrefix).Module,
-                true);
-
-            prefix.DefineParameter(1, ParameterAttributes.None, ps[itemPos].Name);
-            prefix.DefineParameter(2, ParameterAttributes.None, ps[countPos].Name);
-
-            ILGenerator il = prefix.GetILGenerator();
-            il.Emit(OpCodes.Ldarg_0);                                 // itemIndex
-            il.Emit(OpCodes.Ldarga, 1);                               // &count
-            il.Emit(OpCodes.Call, AccessTools.Method(typeof(MultiplyPrefix), "MultiplyCountCore"));
-            il.Emit(OpCodes.Ldc_I4_1);                                // always true
-            il.Emit(OpCodes.Ret);
-
-            harmony.Patch(target, prefix: new HarmonyMethod(prefix));
-            log.LogInfo($"Patched RoR2.Inventory.{name}({string.Join(", ", Array.ConvertAll(types, t => t.Name))}) - pickups will be multiplied.");
-            return true;
+                harmony.Patch(target, transpiler: tm);
+                log.LogInfo($"Patched RoR2.Inventory.{name}({string.Join(", ", Array.ConvertAll(types, t => t.Name))}) - pickups will be multiplied.");
+                return true;
+            }
+            catch (Exception e)
+            {
+                log.LogError($"Could not patch {name}: {e.Message}");
+                return false;
+            }
         }
 
         // Runs after all plugins' Awake() (and therefore after content-pack
@@ -356,45 +356,135 @@ namespace megidont
             get { return multiplier.Value; }
         }
 
-        // Fallback postfix on Inventory.GiveItem(ItemIndex, int): multiplies
-        // the count by the configured multiplier unless the item is forbidden.
-        // Only applied when no GiveItem overload could be patched above. The
-        // count parameter is bound via named-parameter syntax (__2) so this
-        // compiles regardless of what the game build names it.
-        [HarmonyPatch(typeof(Inventory), "GiveItem", new[] { typeof(ItemIndex), typeof(int) })]
-        [HarmonyPostfix]
-        private static void multiplyItems(ItemIndex __1, ref int __2)
+        internal static void LogWarning(string message)
         {
-            if (!ShouldMultiply(__1)) return;
-            __2 *= multiplier.Value;
+            if (log != null) log.LogWarning(message);
         }
     }
 
-    // Multiply logic shared by the DynamicMethod prefixes emitted for each
-    // Inventory give overload. The generated prefix calls MultiplyCountCore
-    // with (ItemIndex, ref int count) and always returns true so the original
-    // method executes with the scaled count. MultiplyOnce semantics are
-    // implemented with a [ThreadStatic] flag: the give methods form a chain
-    // (e.g. GiveItem(itemDef,count) -> GiveItem(itemIndex,count);
-    // GiveItemChanneled/Rented -> GiveItemPermanent), and without the guard
-    // an item would be multiplied once per hop in the chain.
-    internal static class MultiplyPrefix
+    // Harmony transpiler installed on each Inventory give overload. The
+    // count parameter is passed BY VALUE in the real game, so we rewrite the
+    // method IL: immediately before the first instruction that stores the
+    // count argument into a local (Ldarg count; Stloc), we inject
+    //     count = MultiplyTranspiled(itemArg, count)
+    // which applies the multiplier exactly once per pickup. MultiplyOnce
+    // semantics are enforced with a [ThreadStatic] flag because the give
+    // methods form a call chain (e.g. GiveItem(itemDef,count) ->
+    // GiveItem(index,count); GiveItemChanneled/Rented -> GiveItemPermanent)
+    // and without the guard an item would be multiplied once per hop.
+    internal static class MultiplyTranspiler
     {
+        private class TargetInfo
+        {
+            public int ItemArgIndex;   // arg slot of ItemIndex/ItemDef param (1-based for Ldarg opcode calc)
+            public int CountArgIndex;  // arg slot of the int count param
+            public bool ItemIsDef;
+        }
+
+        private static readonly Dictionary<MethodBase, TargetInfo> targets =
+            new Dictionary<MethodBase, TargetInfo>();
+
         [ThreadStatic] private static bool multiplying;
 
-        public static void MultiplyCountCore(ItemIndex itemIndex, ref int count)
+        public static void Register(MethodInfo target, int itemArgSlot, int countArgSlot, bool itemIsDef)
+        {
+            lock (targets)
+            {
+                targets[target] = new TargetInfo
+                {
+                    ItemArgIndex = itemArgSlot,
+                    CountArgIndex = countArgSlot,
+                    ItemIsDef = itemIsDef,
+                };
+            }
+        }
+
+        // Called by Harmony when patching the DMD body. We only registered a
+        // transpiler for methods we inspected in Register, so info must exist.
+        public static IEnumerable<CodeInstruction> Transpile(
+            MethodBase original, IEnumerable<CodeInstruction> instructions)
+        {
+            var codes = instructions.ToList();
+
+            TargetInfo info;
+            lock (targets) { targets.TryGetValue(original, out info); }
+            if (info == null) return codes;
+
+            CodeInstruction multiplyCall = info.ItemIsDef
+                ? new CodeInstruction(OpCodes.Call,
+                    AccessTools.Method(typeof(MultiplyTranspiler), nameof(MultiplyFromDef)))
+                : new CodeInstruction(OpCodes.Call,
+                    AccessTools.Method(typeof(MultiplyTranspiler), nameof(MultiplyFromIndex)));
+
+            // Find the earliest "Ldarg <count>; Stloc x" pair — Unity's
+            // decompiler-style stubs always stash their args into locals at
+            // the top of the body. Inject our scaling call between them so
+            // the local receives the multiplied value.
+            for (int i = 0; i < codes.Count - 1; i++)
+            {
+                CodeInstruction ld = codes[i];
+                CodeInstruction st = codes[i + 1];
+                if (!IsLdarg(ld, info.CountArgIndex)) continue;
+                if (st.opcode != OpCodes.Stloc && !(st.opcode.Name.StartsWith("stloc"))) continue;
+
+                // Replace "ldarg.N; stloc.X" with
+                // "ldarg.item; ldarg.count; CALL; stloc.X"
+                codes[i] = LoadArg(info.ItemArgIndex);
+                codes.Insert(i + 1, LoadArg(info.CountArgIndex));
+                codes.Insert(i + 2, multiplyCall);
+                return codes;
+            }
+
+            // Fallback: no stash pattern found. If the method is tiny
+            // (stub-like tail call or direct use), wrap differently isn't
+            // safe — log and leave unmodified rather than corrupt IL.
+            X10.LogWarning($"Could not locate count-argument usage in {original.Name}; this overload will NOT multiply.");
+            return codes;
+        }
+
+        private static bool IsLdarg(CodeInstruction c, int argSlot)
+        {
+            if (c.opcode == OpCodes.Ldarg_0) return argSlot == 0;
+            if (c.opcode == OpCodes.Ldarg_1) return argSlot == 1;
+            if (c.opcode == OpCodes.Ldarg_2) return argSlot == 2;
+            if (c.opcode == OpCodes.Ldarg_3) return argSlot == 3;
+            if (c.opcode == OpCodes.Ldarg || c.opcode == OpCodes.Ldarg_S)
+                return c.operand is int i && i == argSlot;
+            return false;
+        }
+
+        private static CodeInstruction LoadArg(int slot)
+        {
+            switch (slot)
+            {
+                case 0: return new CodeInstruction(OpCodes.Ldarg_0);
+                case 1: return new CodeInstruction(OpCodes.Ldarg_1);
+                case 2: return new CodeInstruction(OpCodes.Ldarg_2);
+                case 3: return new CodeInstruction(OpCodes.Ldarg_3);
+                default: return new CodeInstruction(OpCodes.Ldarg_S, slot);
+            }
+        }
+
+        // Runtime helpers invoked from the injected IL.
+        public static int MultiplyFromIndex(ItemIndex itemIndex, int count)
+            => MultiplyCore(itemIndex, count);
+
+        public static int MultiplyFromDef(ItemDef itemDef, int count)
+            => MultiplyCore(itemDef ? itemDef.itemIndex : ItemIndex.None, count);
+
+        private static int MultiplyCore(ItemIndex itemIndex, int count)
         {
             // Only act on additions; removals/zero pass through.
-            if (count <= 0) return;
+            if (count <= 0) return count;
 
             // Already multiplied higher up in the give-method chain.
-            if (multiplying) return;
+            if (multiplying) return count;
 
             try
             {
                 multiplying = true;
-                if (!X10.ShouldMultiply(itemIndex)) return;
-                count *= X10.MultiplierValue;
+                if (!X10.ShouldMultiply(itemIndex)) return count;
+                return count * X10.MultiplierValue;
             }
             finally
             {
