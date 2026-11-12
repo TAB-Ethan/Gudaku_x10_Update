@@ -11,18 +11,18 @@ using RoR2;
 // Reverse-engineered from the shipped binary and rebuilt against modern
 // Risk of Rain 2 APIs.
 //
-// NOTE ON PATCHING: In current game builds every public Inventory item method
-// (GiveItem, AddItemsFrom, ...) is a stripped stub whose body throws, so a
-// compile-time patch on GiveItem silently does nothing at runtime. The real
-// stack mutation happens inside an internal generic implementation,
-// Inventory.ChangeItemStacksCount<TImpl>(TImpl impl, ItemIndex itemIndex,
-// int countToAdd), which all give/pickup paths funnel through server-side.
-// We resolve that method via reflection at load time and install a Harmony
-// prefix that multiplies `countToAdd`. If the method cannot be found (older
-// game layouts), we fall back to patching the public GiveItem overloads.
+// NOTE ON PATCHING: Since the Sep-2025 recompile, every public Inventory item
+// method is a stripped stub whose body throws, so compile-time patches on
+// GiveItem fail to apply ("Parameter \"count\" not found") or do nothing. All
+// give/pickup paths now funnel through the internal generic
+// Inventory.ChangeItemStacksCount<TImpl>, which mutates stacks by calling
+// ItemCollection.Add(itemIndex, count) on the relevant collection. We resolve
+// ItemCollection.Add via reflection at load time and install a Harmony prefix
+// that multiplies `count`. If it cannot be found (older game layouts), we fall
+// back to the legacy postfix on Inventory.GiveItem(ItemIndex, int).
 namespace megidont
 {
-    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.2")]
+    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.3")]
     public class X10 : BaseUnityPlugin
     {
         private static ManualLogSource log;
@@ -62,32 +62,29 @@ namespace megidont
 
             var harmony = new Harmony("gudako.X10");
 
-            // Resolve the real stack-mutation choke point by reflection. Its
-            // parameter shape (impl, ItemIndex, Int32) is stable across
-            // versions even though the method itself is internal/generic.
-            MethodInfo target = null;
-            foreach (var m in typeof(Inventory).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
+            // Resolve the modern stack-mutation choke point:
+            // RoR2.ItemCollection.Add(ItemIndex, int). Every give/pickup path
+            // (GiveItem, GiveItemPermanent, AddItemsFrom, ...) funnels through
+            // ChangeItemStacksCount, which calls Add on the target collection.
+            Type collectionType = AccessTools.TypeByName("RoR2.ItemCollection");
+            MethodInfo addMethod = null;
+            if (collectionType != null)
             {
-                if (m.Name != "ChangeItemStacksCount") continue;
-                var ps = m.GetParameters();
-                if (ps.Length == 3 && ps[1].ParameterType == typeof(ItemIndex) && ps[2].ParameterType == typeof(int))
-                {
-                    target = m;
-                    break;
-                }
+                addMethod = AccessTools.Method(collectionType, "Add",
+                    new[] { typeof(ItemIndex), typeof(int) });
             }
 
-            if (target != null)
+            if (addMethod != null)
             {
                 var prefix = AccessTools.Method(typeof(MultiplyPrefix), "Prefix");
-                harmony.Patch(target, prefix: new HarmonyMethod(prefix));
-                log.LogInfo("Patched Inventory.ChangeItemStacksCount - pickups will be multiplied.");
+                harmony.Patch(addMethod, prefix: new HarmonyMethod(prefix));
+                log.LogInfo("Patched ItemCollection.Add - pickups will be multiplied.");
             }
             else
             {
-                // Fallback for older/stripped layouts where GiveItem carries
-                // the real logic: use the annotation-based patches below.
-                log.LogWarning("Inventory.ChangeItemStacksCount not found; falling back to GiveItem postfix patches.");
+                // Fallback for older game layouts where GiveItem carries the
+                // real logic: use the annotation-based postfix below.
+                log.LogWarning("RoR2.ItemCollection.Add not found; falling back to legacy GiveItem postfix patches.");
                 harmony.PatchAll(typeof(X10));
             }
 
@@ -200,25 +197,24 @@ namespace megidont
             if (!ShouldMultiply(__1)) return;
             __2 *= multiplier.Value;
         }
-
-        // Runs after all plugins' Awake() (and therefore after content-pack
-        // registration), matching the original binary's patch timing.
-        private void StartFallbackNote() { }
     }
 
-    // Harmony prefix for Inventory.ChangeItemStacksCount<TImpl>(impl, itemIndex, countToAdd).
-    // Scales countToAdd before the real implementation runs. Returning true
+    // Harmony prefix for RoR2.ItemCollection.Add(ItemIndex itemIndex, int count).
+    // Scales `count` before the real implementation runs. Only genuine pickup
+    // paths pass positive counts through Add on a live inventory's permanent
+    // stacks; removals (negative counts) and bookkeeping recomputes (which use
+    // SetStackValue/AddTo instead of Add) are left untouched. Returning true
     // lets the original method execute with the modified argument.
     internal static class MultiplyPrefix
     {
-        public static bool Prefix(ItemIndex itemIndex, ref int countToAdd)
+        public static bool Prefix(ItemIndex itemIndex, ref int count)
         {
             // Only act on additions; removals (negative counts) pass through.
-            if (countToAdd <= 0) return true;
+            if (count <= 0) return true;
 
             if (!X10.ShouldMultiply(itemIndex)) return true;
 
-            countToAdd *= X10.MultiplierValue;
+            count *= X10.MultiplierValue;
             return true;
         }
     }
