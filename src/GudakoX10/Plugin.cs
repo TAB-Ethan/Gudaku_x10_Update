@@ -1,22 +1,31 @@
 using System;
 using System.Linq;
+using System.Reflection;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 using RoR2;
-using RoR2.ContentManagement;
 
 // Reconstructed source for Gudako-x10.dll (namespace megidont, class X10).
 // Reverse-engineered from the shipped binary and rebuilt against modern
-// Risk of Rain 2 / BepInEx APIs.
+// Risk of Rain 2 APIs.
+//
+// NOTE ON PATCHING: In current game builds every public Inventory item method
+// (GiveItem, AddItemsFrom, ...) is a stripped stub whose body throws, so a
+// compile-time patch on GiveItem silently does nothing at runtime. The real
+// stack mutation happens inside an internal generic implementation,
+// Inventory.ChangeItemStacksCount<TImpl>(TImpl impl, ItemIndex itemIndex,
+// int countToAdd), which all give/pickup paths funnel through server-side.
+// We resolve that method via reflection at load time and install a Harmony
+// prefix that multiplies `countToAdd`. If the method cannot be found (older
+// game layouts), we fall back to patching the public GiveItem overloads.
 namespace megidont
 {
-    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.0")]
+    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.2")]
     public class X10 : BaseUnityPlugin
     {
         private static ManualLogSource log;
-        private static ConfigFile config;
 
         private static ConfigEntry<int> multiplier;
         private static ConfigEntry<string> forbiddenItems;
@@ -49,14 +58,39 @@ namespace megidont
         private void Awake()
         {
             log = Logger;
-            config = base.Config;
-            InitConfig(config);
-
-            // Self-check (Initialize) is deferred to Start(): at Awake time
-            // ItemCatalog is empty, which made every lookup fail previously.
+            InitConfig(base.Config);
 
             var harmony = new Harmony("gudako.X10");
-            harmony.PatchAll(typeof(X10));
+
+            // Resolve the real stack-mutation choke point by reflection. Its
+            // parameter shape (impl, ItemIndex, Int32) is stable across
+            // versions even though the method itself is internal/generic.
+            MethodInfo target = null;
+            foreach (var m in typeof(Inventory).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
+            {
+                if (m.Name != "ChangeItemStacksCount") continue;
+                var ps = m.GetParameters();
+                if (ps.Length == 3 && ps[1].ParameterType == typeof(ItemIndex) && ps[2].ParameterType == typeof(int))
+                {
+                    target = m;
+                    break;
+                }
+            }
+
+            if (target != null)
+            {
+                var prefix = AccessTools.Method(typeof(MultiplyPrefix), "Prefix");
+                harmony.Patch(target, prefix: new HarmonyMethod(prefix));
+                log.LogInfo("Patched Inventory.ChangeItemStacksCount - pickups will be multiplied.");
+            }
+            else
+            {
+                // Fallback for older/stripped layouts where GiveItem carries
+                // the real logic: use the annotation-based patches below.
+                log.LogWarning("Inventory.ChangeItemStacksCount not found; falling back to GiveItem postfix patches.");
+                harmony.PatchAll(typeof(X10));
+            }
+
             log.LogInfo("10x Pickup Mod loaded!");
         }
 
@@ -87,15 +121,14 @@ namespace megidont
             // [itemCode, ","] pairs flattened with string.Concat. This is why
             // it must run AFTER content packs are registered (Unity's
             // Awake order), so we call it from Start(), not Awake().
-            string[] strings = new string[35];
+            string[] strings = new string[40];
             int i = 0;
             foreach (string code in checkedItemCodes)
             {
                 strings[i++] = Token(code);
                 strings[i++] = ",";
             }
-            strings[i] = Token("SkullCounter");
-            string expected = string.Concat(strings);
+            string expected = string.Concat(strings).TrimEnd(',');
 
             if (defaultForbiddenItems == expected) return;
 
@@ -116,16 +149,17 @@ namespace megidont
             return def ? def.nameToken.ToString() : string.Empty;
         }
 
-        // Postfix on Inventory.GiveItem(ItemIndex, int): multiplies the count
-        // by the configured multiplier unless the item is forbidden.
-        [HarmonyPatch(typeof(Inventory), "GiveItem", new[] { typeof(ItemIndex), typeof(int) })]
-        [HarmonyPostfix]
-        private static void multiplyItems(ItemIndex itemIndex, ref int count)
+        // Runs after all plugins' Awake() (and therefore after content-pack
+        // registration), matching the original binary's patch timing.
+        private void Start()
         {
-            ItemDef itemDef = ItemCatalog.GetItemDef(itemIndex);
+            Initialize();
+        }
 
-            // Items without a nameToken can only be filtered by index; each
-            // has its own opt-in config switch (disabled by default).
+        // Shared filter logic: returns true when the given item stack change
+        // should be multiplied.
+        internal static bool ShouldMultiply(ItemIndex itemIndex)
+        {
             int[] disabledIndexes = new int[4];
             if (!enableIndex109.Value) disabledIndexes[0] = 109;
             if (!enableIndex167.Value) disabledIndexes[1] = 167;
@@ -134,24 +168,58 @@ namespace megidont
 
             bool byIndex = disabledIndexes.Contains((int)itemIndex);
 
+            ItemDef itemDef = ItemCatalog.GetItemDef(itemIndex);
+            if (itemDef == null) return !byIndex;
+
             // Void items were double-multiplied (the unlock counts as a give);
             // skip multiplying them unless the user re-enables the old behaviour.
             bool isVoid = false;
             if (itemDef.tier >= ItemTier.VoidTier1 && itemDef.tier <= ItemTier.VoidBoss)
             {
-                isVoid = !fixVoidItems.Value ? false : true;
+                isVoid = fixVoidItems.Value;
             }
 
-            if (forbiddenItems.Value.Contains(itemDef.nameToken) || byIndex || isVoid)
-                return;
+            if (forbiddenItems.Value.Contains(itemDef.nameToken.ToString()) || byIndex || isVoid)
+                return false;
 
-            count *= multiplier.Value;
+            return true;
         }
+
+        internal static int MultiplierValue
+        {
+            get { return multiplier.Value; }
+        }
+
+        // Fallback postfix on Inventory.GiveItem(ItemIndex, int): multiplies
+        // the count by the configured multiplier unless the item is forbidden.
+        // Only applied when ChangeItemStacksCount could not be resolved.
+        [HarmonyPatch(typeof(Inventory), "GiveItem", new[] { typeof(ItemIndex), typeof(int) })]
+        [HarmonyPostfix]
+        private static void multiplyItems(ItemIndex __1, ref int __2)
+        {
+            if (!ShouldMultiply(__1)) return;
+            __2 *= multiplier.Value;
+        }
+
         // Runs after all plugins' Awake() (and therefore after content-pack
         // registration), matching the original binary's patch timing.
-        private void Start()
+        private void StartFallbackNote() { }
+    }
+
+    // Harmony prefix for Inventory.ChangeItemStacksCount<TImpl>(impl, itemIndex, countToAdd).
+    // Scales countToAdd before the real implementation runs. Returning true
+    // lets the original method execute with the modified argument.
+    internal static class MultiplyPrefix
+    {
+        public static bool Prefix(ItemIndex itemIndex, ref int countToAdd)
         {
-            Initialize();
+            // Only act on additions; removals (negative counts) pass through.
+            if (countToAdd <= 0) return true;
+
+            if (!X10.ShouldMultiply(itemIndex)) return true;
+
+            countToAdd *= X10.MultiplierValue;
+            return true;
         }
     }
 }
