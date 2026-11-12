@@ -12,7 +12,6 @@ using RoR2.ContentManagement;
 // Risk of Rain 2 / BepInEx APIs.
 namespace megidont
 {
-    [BepInDependency("com.bepis.r2api")]
     [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.0")]
     public class X10 : BaseUnityPlugin
     {
@@ -37,16 +36,24 @@ namespace megidont
             "ITEM_SCRAPGREEN_NAME,ITEM_SCRAPRED_NAME,ITEM_SCRAPWHITE_NAME," +
             "ITEM_SCRAPYELLOW_NAME,ITEM_SKULLCOUNTER_NAME";
 
+        // Internal item codes whose nameTokens back the default forbidden list.
+        private static readonly string[] checkedItemCodes = new string[]
+        {
+            "AdaptiveArmor", "BoostAttackSpeed", "BoostDamage", "BoostEquipmentRecharge",
+            "BoostHp", "CrippleWardOnLevel", "CutHp", "DrizzlePlayerHelper",
+            "ExtraLifeConsumed", "Ghost", "HealthDecay", "InvadingDoppelganger",
+            "LevelBonus", "MinionLeash", "MonsoonPlayerHelper", "ScrapGreen",
+            "ScrapRed", "ScrapWhite", "ScrapYellow", "SkullCounter"
+        };
+
         private void Awake()
         {
             log = Logger;
             config = base.Config;
             InitConfig(config);
 
-            // Self-check: verify our hard-coded forbidden list still matches
-            // the game's current item name tokens. If it doesn't, the game
-            // updated an internal item's token and we need to know about it.
-            Initialize();
+            // Self-check (Initialize) is deferred to Start(): at Awake time
+            // ItemCatalog is empty, which made every lookup fail previously.
 
             var harmony = new Harmony("gudako.X10");
             harmony.PatchAll(typeof(X10));
@@ -76,25 +83,19 @@ namespace megidont
         // if the game's tokens no longer match what we shipped with.
         private static void Initialize()
         {
-            string expected = string.Concat(
-                Token("AdaptiveArmor"), ",",
-                Token("BoostAttackSpeed"), ",",
-                Token("BoostDamage"), ",",
-                Token("BoostEquipmentRecharge"), ",",
-                Token("BoostHp"), ",",
-                Token("CrippleWardOnLevel"), ",",
-                Token("CutHp"), ",",
-                Token("DrizzlePlayerHelper"), ",",
-                Token("ExtraLifeConsumed"), ",",
-                Token("Ghost"), ",",
-                Token("HealthDecay"), ",",
-                Token("InvadingDoppelganger"), ",",
-                Token("LevelBonus"), ",",
-                Token("MinionLeash"), ",",
-                Token("MonsoonPlayerHelper"), ",",
-                Token("ScrapGreen"), ",",
-                Token("ScrapRed"), ",",
-                Token("SkullCounter"));
+            // Built exactly like the original: interleaved array of
+            // [itemCode, ","] pairs flattened with string.Concat. This is why
+            // it must run AFTER content packs are registered (Unity's
+            // Awake order), so we call it from Start(), not Awake().
+            string[] strings = new string[35];
+            int i = 0;
+            foreach (string code in checkedItemCodes)
+            {
+                strings[i++] = Token(code);
+                strings[i++] = ",";
+            }
+            strings[i] = Token("SkullCounter");
+            string expected = string.Concat(strings);
 
             if (defaultForbiddenItems == expected) return;
 
@@ -145,6 +146,12 @@ namespace megidont
                 return;
 
             count *= multiplier.Value;
+        }
+        // Runs after all plugins' Awake() (and therefore after content-pack
+        // registration), matching the original binary's patch timing.
+        private void Start()
+        {
+            Initialize();
         }
     }
 }
