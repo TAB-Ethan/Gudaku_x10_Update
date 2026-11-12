@@ -1,5 +1,0 @@
-/workspace/src/GudakoX10/obj/Release/netstandard2.0/GudakoX10.csproj.AssemblyReference.cache
-/workspace/src/GudakoX10/obj/Release/netstandard2.0/GudakoX10.GeneratedMSBuildEditorConfig.editorconfig
-/workspace/src/GudakoX10/obj/Release/netstandard2.0/GudakoX10.AssemblyInfoInputs.cache
-/workspace/src/GudakoX10/obj/Release/netstandard2.0/GudakoX10.AssemblyInfo.cs
-/workspace/src/GudakoX10/obj/Release/netstandard2.0/GudakoX10.csproj.CoreCompileInputs.cache
