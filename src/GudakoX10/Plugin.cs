@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
@@ -22,7 +23,7 @@ using RoR2;
 // back to the legacy postfix on Inventory.GiveItem(ItemIndex, int).
 namespace megidont
 {
-    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.5")]
+    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.6")]
     public class X10 : BaseUnityPlugin
     {
         private static ManualLogSource log;
@@ -72,29 +73,34 @@ namespace megidont
 
             var harmony = new Harmony("gudako.X10");
 
-            // Resolve the modern stack-mutation choke point:
-            // RoR2.ItemCollection.Add(ItemIndex, int). Every give/pickup path
-            // (GiveItem, GiveItemPermanent, AddItemsFrom, ...) funnels through
-            // ChangeItemStacksCount, which calls Add on the target collection.
-            Type collectionType = AccessTools.TypeByName("RoR2.ItemCollection");
-            MethodInfo addMethod = null;
-            if (collectionType != null)
-            {
-                addMethod = AccessTools.Method(collectionType, "Add",
-                    new[] { typeof(ItemIndex), typeof(int) });
-            }
+            // Patch every public item-give entry point with a Harmony PREFIX
+            // that scales the count argument. We deliberately do NOT patch
+            // low-level internals like ItemCollection.Add or
+            // Inventory.ChangeItemStacksCount: those are also used by
+            // bookkeeping paths (Shrine Restack, temporary/rented decay
+            // recomputes, inventory cloning), so multiplying there corrupts
+            // or resets stacks - which is what broke v1.0.3-1.0.5.
+            //
+            // The give methods form a tree rooted at GiveItem(ItemIndex,int);
+            // e.g. GiveItem(itemDef,count) -> GiveItem(index,count) and
+            // GiveItemChanneled/Rented internally call GiveItemPermanent.
+            // MultiplyOnce guards against double-scaling when an outer method
+            // has already multiplied the count before delegating inward.
+            bool patchedAny = false;
+            patchedAny |= TryPatchGive(harmony, "GiveItem", new[] { typeof(ItemIndex), typeof(int) });
+            patchedAny |= TryPatchGive(harmony, "GiveItem", new[] { typeof(ItemIndex), typeof(int), typeof(bool) });
+            patchedAny |= TryPatchGive(harmony, "GiveItem", new[] { typeof(ItemDef), typeof(int) });
+            patchedAny |= TryPatchGive(harmony, "GiveItemPermanent", new[] { typeof(ItemIndex), typeof(int) });
+            patchedAny |= TryPatchGive(harmony, "GiveItemPermanent", new[] { typeof(ItemDef), typeof(int) });
+            patchedAny |= TryPatchGive(harmony, "GiveItemChanneled", new[] { typeof(ItemIndex), typeof(int) });
+            patchedAny |= TryPatchGive(harmony, "GiveItemTemp", new[] { typeof(ItemIndex), typeof(int) });
+            patchedAny |= TryPatchGive(harmony, "GiveItemRented", new[] { typeof(ItemIndex), typeof(int) });
 
-            if (addMethod != null)
+            if (!patchedAny)
             {
-                var prefix = AccessTools.Method(typeof(MultiplyPrefix), "Prefix");
-                harmony.Patch(addMethod, prefix: new HarmonyMethod(prefix));
-                log.LogInfo("Patched ItemCollection.Add - pickups will be multiplied.");
-            }
-            else
-            {
-                // Fallback for older game layouts where GiveItem carries the
-                // real logic: use the annotation-based postfix below.
-                log.LogWarning("RoR2.ItemCollection.Add not found; falling back to legacy GiveItem postfix patches.");
+                // Last-resort fallback for very old game layouts where only
+                // the postfix hook worked.
+                log.LogWarning("No GiveItem overloads found; falling back to legacy postfix patch.");
                 harmony.PatchAll(typeof(X10));
             }
 
@@ -171,6 +177,52 @@ namespace megidont
             if (index == ItemIndex.None) return string.Empty;
             ItemDef def = ItemCatalog.GetItemDef(index);
             return def ? def.nameToken.ToString() : string.Empty;
+        }
+
+        // Installs a multiply prefix on Inventory.<name>(<types>). HarmonyX
+        // binds patch parameters by NAME, and recent game recompiles renamed
+        // the count parameter ("count" -> "countToAdd"), so we emit a tiny
+        // DynamicMethod per target whose parameter names are taken from the
+        // actual game method. Returns false (without throwing) when the
+        // overload doesn't exist in this game build.
+        private static bool TryPatchGive(Harmony harmony, string name, Type[] types)
+        {
+            MethodInfo target = AccessTools.Method(typeof(Inventory), name, types);
+            if (target == null) return false;
+
+            ParameterInfo[] ps = target.GetParameters();
+            int itemPos = Array.FindIndex(ps, p => p.ParameterType == typeof(ItemIndex));
+            int countPos = Array.FindIndex(ps, p => p.ParameterType == typeof(int));
+            if (itemPos < 0 || countPos < 0) return false;
+
+            Type[] paramTypes =
+            {
+                ps[itemPos].ParameterType,                      // ItemIndex
+                ps[countPos].ParameterType.MakeByRefType()      // ref int count
+            };
+
+            DynamicMethod prefix = new DynamicMethod(
+                "GudakoX10_Prefix_" + name + "_" + countPos,
+                MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig,
+                CallingConventions.Standard,
+                typeof(bool),                                   // return: run original
+                paramTypes,
+                typeof(MultiplyPrefix).Module,
+                true);
+
+            prefix.DefineParameter(1, ParameterAttributes.None, ps[itemPos].Name);
+            prefix.DefineParameter(2, ParameterAttributes.None, ps[countPos].Name);
+
+            ILGenerator il = prefix.GetILGenerator();
+            il.Emit(OpCodes.Ldarg_0);                                 // itemIndex
+            il.Emit(OpCodes.Ldarga, 1);                               // &count
+            il.Emit(OpCodes.Call, AccessTools.Method(typeof(MultiplyPrefix), "MultiplyCountCore"));
+            il.Emit(OpCodes.Ldc_I4_1);                                // always true
+            il.Emit(OpCodes.Ret);
+
+            harmony.Patch(target, prefix: new HarmonyMethod(prefix));
+            log.LogInfo($"Patched RoR2.Inventory.{name}({string.Join(", ", Array.ConvertAll(types, t => t.Name))}) - pickups will be multiplied.");
+            return true;
         }
 
         // Runs after all plugins' Awake() (and therefore after content-pack
@@ -257,7 +309,9 @@ namespace megidont
 
         // Fallback postfix on Inventory.GiveItem(ItemIndex, int): multiplies
         // the count by the configured multiplier unless the item is forbidden.
-        // Only applied when ChangeItemStacksCount could not be resolved.
+        // Only applied when no GiveItem overload could be patched above. The
+        // count parameter is bound via named-parameter syntax (__2) so this
+        // compiles regardless of what the game build names it.
         [HarmonyPatch(typeof(Inventory), "GiveItem", new[] { typeof(ItemIndex), typeof(int) })]
         [HarmonyPostfix]
         private static void multiplyItems(ItemIndex __1, ref int __2)
@@ -267,23 +321,36 @@ namespace megidont
         }
     }
 
-    // Harmony prefix for RoR2.ItemCollection.Add(ItemIndex itemIndex, int count).
-    // Scales `count` before the real implementation runs. Only genuine pickup
-    // paths pass positive counts through Add on a live inventory's permanent
-    // stacks; removals (negative counts) and bookkeeping recomputes (which use
-    // SetStackValue/AddTo instead of Add) are left untouched. Returning true
-    // lets the original method execute with the modified argument.
+    // Multiply logic shared by the DynamicMethod prefixes emitted for each
+    // Inventory give overload. The generated prefix calls MultiplyCountCore
+    // with (ItemIndex, ref int count) and always returns true so the original
+    // method executes with the scaled count. MultiplyOnce semantics are
+    // implemented with a [ThreadStatic] flag: the give methods form a chain
+    // (e.g. GiveItem(itemDef,count) -> GiveItem(itemIndex,count);
+    // GiveItemChanneled/Rented -> GiveItemPermanent), and without the guard
+    // an item would be multiplied once per hop in the chain.
     internal static class MultiplyPrefix
     {
-        public static bool Prefix(ItemIndex itemIndex, ref int count)
+        [ThreadStatic] private static bool multiplying;
+
+        public static void MultiplyCountCore(ItemIndex itemIndex, ref int count)
         {
-            // Only act on additions; removals (negative counts) pass through.
-            if (count <= 0) return true;
+            // Only act on additions; removals/zero pass through.
+            if (count <= 0) return;
 
-            if (!X10.ShouldMultiply(itemIndex)) return true;
+            // Already multiplied higher up in the give-method chain.
+            if (multiplying) return;
 
-            count *= X10.MultiplierValue;
-            return true;
+            try
+            {
+                multiplying = true;
+                if (!X10.ShouldMultiply(itemIndex)) return;
+                count *= X10.MultiplierValue;
+            }
+            finally
+            {
+                multiplying = false;
+            }
         }
     }
 }
