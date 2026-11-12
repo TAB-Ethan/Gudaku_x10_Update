@@ -1,0 +1,104 @@
+=== MemberRef resolved ===
+MR1: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e6f60>::.ctor sig=20010108
+MR2: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7080>::.ctor sig=200001
+MR3: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e70e0>::.ctor sig=2001011111
+MR4: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e71a0>::.ctor sig=2001010e
+MR5: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7200>::.ctor sig=2001010e
+MR6: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7260>::.ctor sig=2001010e
+MR7: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e72c0>::.ctor sig=2001010e
+MR8: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7320>::.ctor sig=2001010e
+MR9: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7380>::.ctor sig=2001010e
+MR10: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e73e0>::.ctor sig=2001010e
+MR11: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e74a0>::.ctor sig=2001011131
+MR12: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7500>::.ctor sig=200001
+MR13: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7560>::.ctor sig=2002010e1141
+MR14: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7620>::.ctor sig=2003010e0e0e
+MR15: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7680>::.ctor sig=200001
+MR16: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7860>::.ctor sig=200001
+MR17: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7680>::.ctor sig=20020112610e
+MR18: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7980>::.ctor sig=200001
+MR19: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7680>::.ctor sig=20030112610e1d1261
+MR20: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7b00>::.ctor sig=200001
+MR21: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e78c0>::GetTypeFromHandle sig=00011261118085
+MR22: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7c80>::CreateAndPatchAll sig=000212808912610e
+MR23: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e76e0>::get_Config sig=20001255
+MR24: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e77a0>::Bind sig=300104151259011e000e0e1e000e
+MR25: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7da0>::AdaptiveArmor sig=061275
+MR26: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7aa0>::nameToken sig=060e
+MR27: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7da0>::BoostAttackSpeed sig=061275
+MR28: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7da0>::BoostDamage sig=061275
+MR29: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7da0>::BoostEquipmentRecharge sig=061275
+MR30: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7da0>::BoostHp sig=061275
+MR31: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7da0>::CrippleWardOnLevel sig=061275
+MR32: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7da0>::CutHp sig=061275
+MR33: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7da0>::DrizzlePlayerHelper sig=061275
+MR34: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7da0>::ExtraLifeConsumed sig=061275
+MR35: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7da0>::Ghost sig=061275
+MR36: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7da0>::HealthDecay sig=061275
+MR37: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7da0>::InvadingDoppelganger sig=061275
+MR38: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7da0>::LevelBonus sig=061275
+MR39: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7da0>::MinionLeash sig=061275
+MR40: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7da0>::MonsoonPlayerHelper sig=061275
+MR41: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7da0>::ScrapGreen sig=061275
+MR42: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7da0>::ScrapRed sig=061275
+MR43: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7da0>::ScrapWhite sig=061275
+MR44: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7da0>::ScrapYellow sig=061275
+MR45: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7e60>::SkullCounter sig=061275
+MR46: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7ce0>::Concat sig=00010e1d0e
+MR47: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7ce0>::op_Inequality sig=0002020e0e
+MR48: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7740>::LogFatal sig=2001011c
+MR49: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7920>::GetItemDef sig=000112751171
+MR50: <dnfile.mdtable.TypeSpec object at 0x7f1d6fc17560><dnfile.mdtable.TypeSpecRow object at 0x7f1d6f602f30>::get_Value sig=20001300
+MR51: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7f80>::InitializeArray sig=0002011280ad1180b1
+MR52: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f6000e0>::Contains sig=10010202151280b9011e001e00
+MR53: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7aa0>::get_tier sig=20001180a5
+MR54: <dnfile.mdtable.TypeSpec object at 0x7f1d6fc17560><dnfile.mdtable.TypeSpecRow object at 0x7f1d6f602ff0>::get_Value sig=20001300
+MR55: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e7ce0>::Contains sig=2001020e
+MR56: <dnfile.mdtable.TypeSpec object at 0x7f1d6fc17560><dnfile.mdtable.TypeSpecRow object at 0x7f1d6f603080>::get_Value sig=20001300
+MR57: <dnfile.mdtable.TypeRef object at 0x7f1d6ffcf440><dnfile.mdtable.TypeRefRow object at 0x7f1d6f5e76e0>::.ctor sig=200001
+
+=== TypeSpec ===
+TS1: 1512590102
+TS2: 151259010e
+TS3: 1512590108
+
+=== MethodSpec ===
+MS1: <dnfile.mdtable.MemberRef object at 0x7f1d6fc17aa0><dnfile.mdtable.MemberRefRow object at 0x7f1d6f6016d0> inst=0a0108
+MS2: <dnfile.mdtable.MemberRef object at 0x7f1d6fc17aa0><dnfile.mdtable.MemberRefRow object at 0x7f1d6f6016d0> inst=0a010e
+MS3: <dnfile.mdtable.MemberRef object at 0x7f1d6fc17aa0><dnfile.mdtable.MemberRefRow object at 0x7f1d6f6016d0> inst=0a0102
+MS4: <dnfile.mdtable.MemberRef object at 0x7f1d6fc17aa0><dnfile.mdtable.MemberRefRow object at 0x7f1d6f602150> inst=0a0108
+MS5: <dnfile.mdtable.MemberRef object at 0x7f1d6fc17aa0><dnfile.mdtable.MemberRefRow object at 0x7f1d6f602150> inst=0a011180a5
+
+=== Fields ===
+F1: log sig=061251
+F2: config sig=061255
+F3: multiplier sig=061512590108
+F4: forbiddenItems sig=06151259010e
+F5: fixVoidItems sig=061512590102
+F6: enableIndex109 sig=061512590102
+F7: enableIndex167 sig=061512590102
+F8: enableIndex168 sig=061512590102
+F9: enableIndex176 sig=061512590102
+F10: defaultForbiddenItems sig=060e
+F11: 0EDB951A90ED696D0B29CCA3F3323A2D22265B9EB74D5E14B56CA2FEF70AD73F sig=061110
+
+=== CustomAttribute ===
+CA1: on <dnfile.mdtable.Module object at 0x7f1d6f5e6cf0><dnfile.mdtable.ModuleRow object at 0x7f1d6f5e6f30> attr=None val=01000000
+CA2: on <dnfile.mdtable.Assembly object at 0x7f1d6f5e6db0><dnfile.mdtable.AssemblyRow object at 0x7f1d6f603260> attr=None val=0100080000000000
+CA3: on <dnfile.mdtable.Assembly object at 0x7f1d6f5e6db0><dnfile.mdtable.AssemblyRow object at 0x7f1d6f603260> attr=None val=01000100540216577261704e6f6e457863657074696f6e5468726f777301
+CA4: on <dnfile.mdtable.Assembly object at 0x7f1d6f5e6db0><dnfile.mdtable.AssemblyRow object at 0x7f1d6f603260> attr=None val=0100020000000000
+CA5: on <dnfile.mdtable.Assembly object at 0x7f1d6f5e6db0><dnfile.mdtable.AssemblyRow object at 0x7f1d6f603260> attr=None val=0100192e4e45545374616e646172642c56657273696f6e3d76322e300100540e144672616d65776f726b446973706c61794e616d6500
+CA6: on <dnfile.mdtable.Assembly object at 0x7f1d6f5e6db0><dnfile.mdtable.AssemblyRow object at 0x7f1d6f603260> attr=None val=01000d4578616d706c65506c7567696e0000
+CA7: on <dnfile.mdtable.Assembly object at 0x7f1d6f5e6db0><dnfile.mdtable.AssemblyRow object at 0x7f1d6f603260> attr=None val=01000752656c656173650000
+CA8: on <dnfile.mdtable.Assembly object at 0x7f1d6f5e6db0><dnfile.mdtable.AssemblyRow object at 0x7f1d6f603260> attr=None val=010007312e302e302e300000
+CA9: on <dnfile.mdtable.Assembly object at 0x7f1d6f5e6db0><dnfile.mdtable.AssemblyRow object at 0x7f1d6f603260> attr=None val=010005312e302e300000
+CA10: on <dnfile.mdtable.Assembly object at 0x7f1d6f5e6db0><dnfile.mdtable.AssemblyRow object at 0x7f1d6f603260> attr=None val=01000d4578616d706c65506c7567696e0000
+CA11: on <dnfile.mdtable.Assembly object at 0x7f1d6f5e6db0><dnfile.mdtable.AssemblyRow object at 0x7f1d6f603260> attr=None val=01000d4578616d706c65506c7567696e0000
+CA12: on <dnfile.mdtable.TypeDef object at 0x7f1d6fc17590><dnfile.mdtable.TypeDefRow object at 0x7f1d6f6002c0> attr=None val=01000f636f6d2e62657069732e7232617069010000000000
+CA13: on <dnfile.mdtable.TypeDef object at 0x7f1d6fc17590><dnfile.mdtable.TypeDefRow object at 0x7f1d6f6002c0> attr=None val=01000a677564616b6f2e5831300e313078205069636b7570204d6f6405312e302e300000
+CA14: on <dnfile.mdtable.TypeDef object at 0x7f1d6fc17590><dnfile.mdtable.TypeDefRow object at 0x7f1d6f6002c0> attr=None val=01000000
+CA15: on <dnfile.mdtable.MethodDef object at 0x7f1d6f5e6d80><dnfile.mdtable.MethodDefRow object at 0x7f1d6f600a70> attr=None val=01000000
+CA16: on <dnfile.mdtable.MethodDef object at 0x7f1d6f5e6d80><dnfile.mdtable.MethodDefRow object at 0x7f1d6f600a70> attr=None val=01004d526f52322e4974656d436174616c6f672c20526f52322c2056657273696f6e3d302e302e302e302c2043756c747572653d6e65757472616c2c
+CA17: on <dnfile.mdtable.TypeDef object at 0x7f1d6fc17590><dnfile.mdtable.TypeDefRow object at 0x7f1d6f600320> attr=None val=01000000
+CA18: on <dnfile.mdtable.MethodDef object at 0x7f1d6f5e6d80><dnfile.mdtable.MethodDefRow object at 0x7f1d6f600ad0> attr=None val=01000000
+CA19: on <dnfile.mdtable.MethodDef object at 0x7f1d6f5e6d80><dnfile.mdtable.MethodDefRow object at 0x7f1d6f600ad0> attr=None val=01004b526f52322e496e76656e746f72792c20526f52322c2056657273696f6e3d302e302e302e302c2043756c747572653d6e65757472616c2c2050

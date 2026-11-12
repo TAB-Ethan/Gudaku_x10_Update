@@ -1,0 +1,80 @@
+=== TypeDefs ===
+TD1: ns=<dnfile.stream.HeapItemString object at 0x7fe5bdc8c470> name=<dnfile.stream.HeapItemString object at 0x7fe5bdc8c410> flds=('RANGE', 0) meths=('RANGE', 0) nested=None flags=tdAbstract                                 False
+tdAnsiClass          
+TD2: ns=<dnfile.stream.HeapItemString object at 0x7fe5bdc8c650> name=<dnfile.stream.HeapItemString object at 0x7fe5bdc8c590> flds=('RANGE', (2, 10)) meths=('RANGE', (2, 6)) nested=None flags=tdAbstract                                 False
+tdAnsiClass          
+TD3: ns=<dnfile.stream.HeapItemString object at 0x7fe5bdc8ca70> name=<dnfile.stream.HeapItemString object at 0x7fe5bdc8c920> flds=('RANGE', (12, 1)) meths=('RANGE', 0) nested=None flags=tdAbstract                                 False
+tdAnsiClass          
+TD4: ns=<dnfile.stream.HeapItemString object at 0x7fe5bdc8cbc0> name=<dnfile.stream.HeapItemString object at 0x7fe5bdc8cb60> flds=('RANGE', 0) meths=('RANGE', 0) nested=None flags=tdAbstract                                 False
+tdAnsiClass          
+
+=== Fields ===
+F1: log sig=061251 flags=fdAssembly                              
+F2: config sig=061255 flags=fdAssembly                              
+F3: multiplier sig=061512590108 flags=fdAssembly                              
+F4: forbiddenItems sig=06151259010e flags=fdAssembly                              
+F5: fixVoidItems sig=061512590102 flags=fdAssembly                              
+F6: enableIndex109 sig=061512590102 flags=fdAssembly                              
+F7: enableIndex167 sig=061512590102 flags=fdAssembly                              
+F8: enableIndex168 sig=061512590102 flags=fdAssembly                              
+F9: enableIndex176 sig=061512590102 flags=fdAssembly                              
+F10: defaultForbiddenItems sig=060e flags=fdAssembly                              
+F11: 0EDB951A90ED696D0B29CCA3F3323A2D22265B9EB74D5E14B56CA2FEF70AD73F sig=061110 flags=fdAssembly                              
+
+=== CustomAttribute ===
+CA1: parent=(<dnfile.mdtable.Module object at 0x7fe5bdc0c0b0>,<dnfile.mdtable.ModuleRow object at 0x7fe5bdc3a480>) type=(<dnfile.mdtable.MemberRef object at 0x7fe5bdc3a2d0>,<dnfile.mdtable.MemberRefRow object at 0x7fe5bdc5c7d0>) val=01000000
+CA2: parent=(<dnfile.mdtable.Assembly object at 0x7fe5bdc3a5a0>,<dnfile.mdtable.AssemblyRow object at 0x7fe5bdc5e840>) type=(<dnfile.mdtable.MemberRef object at 0x7fe5bdc3a2d0>,<dnfile.mdtable.MemberRefRow object at 0x7fe5bdc5c230>) val=0100080000000000
+CA3: parent=(<dnfile.mdtable.Assembly object at 0x7fe5bdc3a5a0>,<dnfile.mdtable.AssemblyRow object at 0x7fe5bdc5e840>) type=(<dnfile.mdtable.MemberRef object at 0x7fe5bdc3a2d0>,<dnfile.mdtable.MemberRefRow object at 0x7fe5bdc5c410>) val=01000100540216577261704e6f6e457863657074696f6e5468726f777301
+CA4: parent=(<dnfile.mdtable.Assembly object at 0x7fe5bdc3a5a0>,<dnfile.mdtable.AssemblyRow object at 0x7fe5bdc5e840>) type=(<dnfile.mdtable.MemberRef object at 0x7fe5bdc3a2d0>,<dnfile.mdtable.MemberRefRow object at 0x7fe5bdc5c470>) val=0100020000000000
+CA5: parent=(<dnfile.mdtable.Assembly object at 0x7fe5bdc3a5a0>,<dnfile.mdtable.AssemblyRow object at 0x7fe5bdc5e840>) type=(<dnfile.mdtable.MemberRef object at 0x7fe5bdc3a2d0>,<dnfile.mdtable.MemberRefRow object at 0x7fe5bdc5c4d0>) val=0100192e4e45545374616e646172642c56657273696f6e3d76322e300100540e144672616d65776f726b446973706c61794e616d6500
+CA6: parent=(<dnfile.mdtable.Assembly object at 0x7fe5bdc3a5a0>,<dnfile.mdtable.AssemblyRow object at 0x7fe5bdc5e840>) type=(<dnfile.mdtable.MemberRef object at 0x7fe5bdc3a2d0>,<dnfile.mdtable.MemberRefRow object at 0x7fe5bdc5c530>) val=01000d4578616d706c65506c7567696e0000
+CA7: parent=(<dnfile.mdtable.Assembly object at 0x7fe5bdc3a5a0>,<dnfile.mdtable.AssemblyRow object at 0x7fe5bdc5e840>) type=(<dnfile.mdtable.MemberRef object at 0x7fe5bdc3a2d0>,<dnfile.mdtable.MemberRefRow object at 0x7fe5bdc5c590>) val=01000752656c656173650000
+CA8: parent=(<dnfile.mdtable.Assembly object at 0x7fe5bdc3a5a0>,<dnfile.mdtable.AssemblyRow object at 0x7fe5bdc5e840>) type=(<dnfile.mdtable.MemberRef object at 0x7fe5bdc3a2d0>,<dnfile.mdtable.MemberRefRow object at 0x7fe5bdc5c5f0>) val=010007312e302e302e300000
+CA9: parent=(<dnfile.mdtable.Assembly object at 0x7fe5bdc3a5a0>,<dnfile.mdtable.AssemblyRow object at 0x7fe5bdc5e840>) type=(<dnfile.mdtable.MemberRef object at 0x7fe5bdc3a2d0>,<dnfile.mdtable.MemberRefRow object at 0x7fe5bdc5c650>) val=010005312e302e300000
+CA10: parent=(<dnfile.mdtable.Assembly object at 0x7fe5bdc3a5a0>,<dnfile.mdtable.AssemblyRow object at 0x7fe5bdc5e840>) type=(<dnfile.mdtable.MemberRef object at 0x7fe5bdc3a2d0>,<dnfile.mdtable.MemberRefRow object at 0x7fe5bdc5c6b0>) val=01000d4578616d706c65506c7567696e0000
+CA11: parent=(<dnfile.mdtable.Assembly object at 0x7fe5bdc3a5a0>,<dnfile.mdtable.AssemblyRow object at 0x7fe5bdc5e840>) type=(<dnfile.mdtable.MemberRef object at 0x7fe5bdc3a2d0>,<dnfile.mdtable.MemberRefRow object at 0x7fe5bdc5c710>) val=01000d4578616d706c65506c7567696e0000
+CA12: parent=(<dnfile.mdtable.TypeDef object at 0x7fe5bdc3a270>,<dnfile.mdtable.TypeDefRow object at 0x7fe5bdc3b830>) type=(<dnfile.mdtable.MemberRef object at 0x7fe5bdc3a2d0>,<dnfile.mdtable.MemberRefRow object at 0x7fe5bdc5c830>) val=01000f636f6d2e62657069732e7232617069010000000000
+CA13: parent=(<dnfile.mdtable.TypeDef object at 0x7fe5bdc3a270>,<dnfile.mdtable.TypeDefRow object at 0x7fe5bdc3b830>) type=(<dnfile.mdtable.MemberRef object at 0x7fe5bdc3a2d0>,<dnfile.mdtable.MemberRefRow object at 0x7fe5bdc5c890>) val=01000a677564616b6f2e5831300e313078205069636b7570204d6f6405312e302e300000
+CA14: parent=(<dnfile.mdtable.TypeDef object at 0x7fe5bdc3a270>,<dnfile.mdtable.TypeDefRow object at 0x7fe5bdc3b830>) type=(<dnfile.mdtable.MemberRef object at 0x7fe5bdc3a2d0>,<dnfile.mdtable.MemberRefRow object at 0x7fe5bdc5c8f0>) val=01000000
+CA15: parent=(<dnfile.mdtable.MethodDef object at 0x7fe5be4b02c0>,<dnfile.mdtable.MethodDefRow object at 0x7fe5bdc3bfb0>) type=(<dnfile.mdtable.MemberRef object at 0x7fe5bdc3a2d0>,<dnfile.mdtable.MemberRefRow object at 0x7fe5bdc5c950>) val=01000000
+CA16: parent=(<dnfile.mdtable.MethodDef object at 0x7fe5be4b02c0>,<dnfile.mdtable.MethodDefRow object at 0x7fe5bdc3bfb0>) type=(<dnfile.mdtable.MemberRef object at 0x7fe5bdc3a2d0>,<dnfile.mdtable.MemberRefRow object at 0x7fe5bdc5c9b0>) val=01004d526f52322e4974656d436174616c6f672c20526f52322c2056657273696f6e3d302e302e302e302c2043756c747572653d6e65757472616c2c205075626c69634b6579546f6b656e3d6e756c6c04496e69740000
+CA17: parent=(<dnfile.mdtable.TypeDef object at 0x7fe5bdc3a270>,<dnfile.mdtable.TypeDefRow object at 0x7fe5bdc3b890>) type=(<dnfile.mdtable.MemberRef object at 0x7fe5bdc3a2d0>,<dnfile.mdtable.MemberRefRow object at 0x7fe5bdc5cad0>) val=01000000
+CA18: parent=(<dnfile.mdtable.MethodDef object at 0x7fe5be4b02c0>,<dnfile.mdtable.MethodDefRow object at 0x7fe5bdc5c050>) type=(<dnfile.mdtable.MemberRef object at 0x7fe5bdc3a2d0>,<dnfile.mdtable.MemberRefRow object at 0x7fe5bdc5ca10>) val=01000000
+CA19: parent=(<dnfile.mdtable.MethodDef object at 0x7fe5be4b02c0>,<dnfile.mdtable.MethodDefRow object at 0x7fe5bdc5c050>) type=(<dnfile.mdtable.MemberRef object at 0x7fe5bdc3a2d0>,<dnfile.mdtable.MemberRefRow object at 0x7fe5bdc5ca70>) val=01004b526f52322e496e76656e746f72792c20526f52322c2056657273696f6e3d302e302e302e302c2043756c747572653d6e65757472616c2c205075626c69634b6579546f6b656e3d6e756c6c08476976654974656d020000004b526f52322e4974656d496e6465782c20526f52322c2056657273696f6e3d302e302e302e302c2043756c747572653d6e65757472616c2c205075626c69634b6579546f6b656e3d6e756c6c5c53797374656d2e496e7433322c206e65747374616e646172642c2056657273696f6e3d322e302e302e302c2043756c747572653d6e65757472616c2c205075626c69634b6579546f6b656e3d636337623133666663643264646435310000
+
+=== AssemblyRef ===
+AR1: netstandard v2.0.0.0
+AR2: BepInEx v5.4.19.0
+AR3: 0Harmony v2.7.0.0
+AR4: RoR2 v0.0.0.0
+
+=== Methods ===
+
+===== M1 Awake =====
+  ERR TypeError("int() argument must be a string, a bytes-like object or a real number, not 'Token'")
+
+===== M2 InitConfig =====
+  0280: ldarg.1
+  0281: stsfld this.F2:config
+  0286: ldarg.0
+  0287: call <dnfile.mdtable.TypeRef object at 0x7fe5bdc3a3c0><dnfile.mdtable.TypeRefRow object at 0x7fe5bdc3ac60>::get_Config
+  ERR TypeError("int() argument must be a string, a bytes-like object or a real number, not 'StringToken'")
+
+===== M3 Initialize =====
+  0378: ldc.i4.s 39
+  ERR IndexError('list index out of range')
+
+===== M4 multiplyItems =====
+  0594: ldarg.0
+  0595: call <dnfile.mdtable.TypeRef object at 0x7fe5bdc3a3c0><dnfile.mdtable.TypeRefRow object at 0x7fe5bdc3aea0>::GetItemDef
+  059A: stloc.0
+  059B: ldc.i4.4
+  ERR IndexError('list index out of range')
+
+===== M5 .ctor =====
+  0650: ldarg.0
+  0651: call <dnfile.mdtable.TypeRef object at 0x7fe5bdc3a3c0><dnfile.mdtable.TypeRefRow object at 0x7fe5bdc3ac60>::.ctor
+  0656: ret
+
+===== M6 .cctor =====
+  ERR TypeError("int() argument must be a string, a bytes-like object or a real number, not 'StringToken'")

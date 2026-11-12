@@ -1,0 +1,8 @@
+us err 'UserStringHeap' object has no attribute 'keys'
+
+=== TypeDef ===
+Traceback (most recent call last):
+  File "/workspace/tools/full.py", line 24, in <module>
+    for i,r in enumerate(md.Typedef.rows):
+                         ^^^^^^^^^^
+AttributeError: 'MetaDataTables' object has no attribute 'Typedef'. Did you mean: 'TypeDef'?
