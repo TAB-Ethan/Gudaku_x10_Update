@@ -22,7 +22,7 @@ using RoR2;
 // back to the legacy postfix on Inventory.GiveItem(ItemIndex, int).
 namespace megidont
 {
-    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.10")]
+    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.11")]
     public class X10 : BaseUnityPlugin
     {
         private static ManualLogSource log;
@@ -44,6 +44,13 @@ namespace megidont
         private static ConfigEntry<bool> noMultiplyVoid;
         private static ConfigEntry<bool> noMultiplyDistinguished;
         private static ConfigEntry<bool> noMultiplyRadioactive;
+
+        // SpeedItemsFilter section: per-item toggles for movement-speed items.
+        private static ConfigEntry<bool> noMultiplyRedWhip;
+        private static ConfigEntry<bool> noMultiplyEnergyDrink;
+        private static ConfigEntry<bool> noMultiplyPaulsGoatHoof;
+        private static ConfigEntry<bool> noMultiplyMocha;
+        private static ConfigEntry<bool> noMultiplySugarcube;
 
         // The internally-used enemy items that should never be multiplied.
         private static readonly string defaultForbiddenItems =
@@ -131,6 +138,19 @@ namespace megidont
             noMultiplyRadioactive = cfg.Bind("RarityFilter", "Do not multiply Radioactive items", false,
                 "If enabled, Radioactive/Boss-tier items will NOT be multiplied on pickup.");
 
+            // Movement-speed items (per-item opt-out toggles). Keys are
+            // apostrophe-free so BepInEx's key parser never aborts binding.
+            noMultiplyRedWhip = cfg.Bind("SpeedItemsFilter", "Do not multiply Red Whip", false,
+                "If enabled, Red Whip (speed item) will NOT be multiplied on pickup.");
+            noMultiplyEnergyDrink = cfg.Bind("SpeedItemsFilter", "Do not multiply Energy Drink", false,
+                "If enabled, Energy Drink (speed item) will NOT be multiplied on pickup.");
+            noMultiplyPaulsGoatHoof = cfg.Bind("SpeedItemsFilter", "Do not multiply Pauls Goat Hoof", false,
+                "If enabled, Paul's Goat Hoof (speed item) will NOT be multiplied on pickup.");
+            noMultiplyMocha = cfg.Bind("SpeedItemsFilter", "Do not multiply Mocha", false,
+                "If enabled, Mocha (speed item) will NOT be multiplied on pickup.");
+            noMultiplySugarcube = cfg.Bind("SpeedItemsFilter", "Do not multiply Sugar Cube", false,
+                "If enabled, Sugar Cube (speed item) will NOT be multiplied on pickup.");
+
             fixVoidItems = cfg.Bind("BasicConfig", "Enable Void Item Fix", true,
                 "During testing, the multiplier for void items ended up squaring the drop. Oops. Reenable if you want.");
 
@@ -163,6 +183,15 @@ namespace megidont
                 "Do not multiply Radioactive items"
             };
 
+            string[] speedKeys =
+            {
+                "Do not multiply Red Whip",
+                "Do not multiply Energy Drink",
+                "Do not multiply Pauls Goat Hoof",
+                "Do not multiply Mocha",
+                "Do not multiply Sugar Cube"
+            };
+
             var defs = new System.Collections.Generic.HashSet<string>(
                 cfg.Keys.Select(k => k.Section + "/" + k.Key));
 
@@ -171,12 +200,26 @@ namespace megidont
             if (present == keys.Length)
             {
                 log.LogInfo("[RarityFilter] all " + keys.Length + " rarity toggles are present in the config file.");
-                return;
             }
 
-            log.LogWarning("[RarityFilter] only " + present + "/" + keys.Length +
-                " rarity toggles were found in the loaded config. If you don't see them in BepInEx/config/gudako.X10.cfg, " +
-                "delete that file and relaunch the game once - the full section will be regenerated.");
+            int speedPresent = speedKeys.Count(k => defs.Contains("SpeedItemsFilter/" + k));
+            if (speedPresent == speedKeys.Length)
+            {
+                log.LogInfo("[SpeedItemsFilter] all " + speedKeys.Length + " speed-item toggles are present in the config file.");
+            }
+            else
+            {
+                log.LogWarning("[SpeedItemsFilter] only " + speedPresent + "/" + speedKeys.Length +
+                    " speed-item toggles were found in the loaded config. If you don't see them in BepInEx/config/gudako.X10.cfg, " +
+                    "delete that file and relaunch the game once - the full sections will be regenerated.");
+                return;
+            }
+            if (present != keys.Length)
+            {
+                log.LogWarning("[RarityFilter] only " + present + "/" + keys.Length +
+                    " rarity toggles were found in the loaded config. If you don't see them in BepInEx/config/gudako.X10.cfg, " +
+                    "delete that file and relaunch the game once - the full section will be regenerated.");
+            }
         }
 
         // Validates the embedded default forbidden-item list against the live
@@ -279,6 +322,10 @@ namespace megidont
                 if (noMultiplyDistinguished.Value) return false;
             }
 
+            // Per-item speed toggles from the SpeedItemsFilter section.
+            var speedToggle = SpeedToggleFor(itemIndex, itemDef);
+            if (speedToggle != null && speedToggle.Value) return false;
+
             if (forbiddenList.Contains(itemDef.nameToken.ToString()))
                 return false;
 
@@ -297,6 +344,37 @@ namespace megidont
             }
             catch { }
             return false;
+        }
+
+        // True for items that grant movement speed: Red Whip, Energy Drink,
+        // Paul's Goat Hoof, Mocha and Sugar Cube. Matched by item code first
+        // (stable across language settings), with a name-token fallback.
+        private static readonly string[] speedItemCodes =
+        {
+            "REDWHIP", "ENERGYDRINK", "PAULSGOATHOOF", "MOCHA", "SUGARCUBE"
+        };
+
+        // Returns the matching speed-item toggle for this item, if any.
+        // Matching is done on the stable internal item codes (language-
+        // independent); a name-token fallback covers renamed items.
+        private static ConfigEntry<bool> SpeedToggleFor(ItemIndex itemIndex, ItemDef itemDef)
+        {
+            string code = itemIndex.ToString();
+            switch (code)
+            {
+                case "RedWhip": return noMultiplyRedWhip;
+                case "EnergyDrink": return noMultiplyEnergyDrink;
+                case "PaulsGoatHoof": return noMultiplyPaulsGoatHoof;
+                case "Mocha": return noMultiplyMocha;
+                case "SugarCube": return noMultiplySugarcube;
+            }
+            string token = itemDef.nameToken.ToString();
+            if (token == "REDWHIP_NAME") return noMultiplyRedWhip;
+            if (token == "ENERGYDRINK_NAME") return noMultiplyEnergyDrink;
+            if (token == "PAULSGOATHOOF_NAME") return noMultiplyPaulsGoatHoof;
+            if (token == "MOCHA_NAME") return noMultiplyMocha;
+            if (token == "SUGARCUBE_NAME") return noMultiplySugarcube;
+            return null;
         }
 
         internal static int MultiplierValue
