@@ -1,2 +1,2 @@
-*.dll
-src/GudakoX10/obj/
+obj/
+bin/

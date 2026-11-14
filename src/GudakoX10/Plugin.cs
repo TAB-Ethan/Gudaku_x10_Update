@@ -109,6 +109,34 @@ namespace megidont
         // microbot stacks.
         internal static bool MicrobotItemsPresent { get; private set; }
 
+        // The Harmony instance used for late/lazy patch installation (see
+        // MultiplyMicrobots.TryLateInstall and EnsurePatchesInstalled).
+        internal static Harmony HarmonyInstance { get; private set; }
+
+        // Set when InstallAllPatches() ran but no multiplication patch
+        // actually applied (e.g. every target was a stripped stub or failed
+        // validation). We then keep retrying on the legacy grant-postfix path.
+        private static bool patchesPending = true;
+
+        // Idempotent: installs the multiplier patches as soon as it is safe
+        // (after the chainloader finished) and re-attempts them whenever any
+        // runtime path notices they are missing. Returns true when at least
+        // one multiplying patch is believed active.
+        internal static bool EnsurePatchesInstalled()
+        {
+            if (!patchesPending) return true;
+            if (!chainloaderFinished) return false;
+            try
+            {
+                InstallAllPatches();
+            }
+            catch (Exception e)
+            {
+                log.LogError("Deferred patch installation failed: " + e);
+            }
+            return !patchesPending;
+        }
+
         private void Awake()
         {
             log = Logger;
@@ -165,6 +193,7 @@ namespace megidont
         {
             instance = this;
             var harmony = new Harmony("gudako.X10");
+            HarmonyInstance = harmony;
 
             // Log whether R2API is present BEFORE any detours are created:
             // its MessagePipe IL patches must be active for Inventory's
@@ -277,40 +306,43 @@ namespace megidont
                     new[] { typeof(ItemDef), typeof(int) }, "PrefixGiveItemPermanentDef");
             }
 
-            if (patchedModern)
+            if (patchedModern || patchedGiveItemIndex || patchedGiveItemDef || patchedBackstop)
             {
-                log.LogInfo("Patched Inventory.ChangeItemStacksCount (modern give pipeline) - " +
-                    "pickups will be multiplied x" + multiplier.Value + ".");
+                // At least one multiplying patch installed cleanly; the
+                // legacy grant-postfix is NOT needed and must not be added
+                // on top (that would double-multiply).
+                patchesPending = false;
             }
-            if (patchedGiveItemIndex || patchedGiveItemDef)
-            {
-                log.LogInfo("Patched Inventory.GiveItem (" +
-                    (patchedGiveItemIndex ? "ItemIndex/countToAdd" : "") +
-                    (patchedGiveItemIndex && patchedGiveItemDef ? " + " : "") +
-                    (patchedGiveItemDef ? "ItemDef/count" : "") +
-                    ")" + (patchedModern ? " [redundant safety net]" :
-                        " - pickups will be multiplied x" + multiplier.Value + "."));
-            }
-            else if (patchedBackstop)
-            {
-                log.LogWarning("Inventory.GiveItem unavailable; multiplying via GiveItemPermanent instead.");
-            }
-            else if (!patchedModern)
+            else
             {
                 // Legacy fallback (pre-R2API layouts, e.g. what worked in
                 // v1.0.4): postfix on GiveItem(ItemIndex, int) that grants the
                 // extra stacks itself. Only installed when NOTHING else applied.
                 log.LogWarning("No modern give method could be patched; " +
                     "falling back to legacy GiveItem postfix patches.");
-                harmony.PatchAll(typeof(X10));
+                try
+                {
+                    harmony.PatchAll(typeof(X10));
+                    legacyPostfixInstalled = true;
+                    patchesPending = false;
+                }
+                catch (Exception e)
+                {
+                    log.LogError("Legacy postfix patch installation failed too: " + e.Message);
+                    // Keep patchesPending = true so EnsurePatchesInstalled()
+                    // retries at the next pickup attempt.
+                }
             }
 
-            // Captain microbot duplication (self-guarding: stays inactive with
-            // a clear log line if MicrobotInfector can't be resolved).
+            // Captain microbot duplication (self-guarding: retries lazily at
+            // runtime; see MultiplyMicrobots).
             MultiplyMicrobots.Install(harmony);
 
             log.LogInfo("10x Pickup Mod loaded!");
         }
+
+        internal static bool LegacyPostfixInstalled => legacyPostfixInstalled;
+        private static bool legacyPostfixInstalled;
 
         // Resolve a method on `type` by name+signature and install a Harmony
         // prefix from MultiplyPrefix. `prefixMethod` names the method on
@@ -370,6 +402,30 @@ namespace megidont
 
                 harmony.Patch(target, prefix: new HarmonyMethod(prefix));
 
+                // VERIFY THE PATCH ACTUALLY APPLIED. With BepInEx's HarmonyX,
+                // harmony.Patch() only queues the detour (ManagedMethodPatcher
+                // applies it lazily at first call), so a broken prefix - e.g.
+                // one whose parameter names don't match the target, or a
+                // method Mono inlines away - would fail SILENTLY later and we
+                // would report success here (exactly what happened on
+                // v1.0.12/v1.0.13/v1.0.14: "Patched ..." logged, nothing
+                // multiplied). We force the patch to materialise now via
+                // PatchProcessor.CreateILInfo/PatchAllState is not public, so
+                // instead we check Harmony's own patch database AND, most
+                // importantly, verify the target method's body is real:
+                // stripped reference-lib methods have 2-instruction stubs
+                // (`ldnull; throw`) that Mono compiles into invalid wrappers,
+                // which is the source of every InvalidProgramException /
+                // IL Compile Error seen in earlier logs.
+                if (IsStubMethod(target))
+                {
+                    log.LogWarning("Target " + type.Name + "." + methodName + " has a stubbed body " +
+                        "(ldnull;throw) in the loaded assembly - Harmony cannot wrap it reliably. " +
+                        "This mod must run against the REAL game Assembly-CSharp/RoR2 assemblies.");
+                    try { new Harmony("gudako.X10.unwind").Unpatch(target); } catch { }
+                    return false;
+                }
+
                 // NOTE: with BepInEx's HarmonyX, harmony.Patch() only queues
                 // the detour (ManagedMethodPatcher applies it lazily at first
                 // call), so a parameter-name mismatch would NOT throw here -
@@ -385,6 +441,33 @@ namespace megidont
                 log.LogWarning("Could not patch " + type.Name + "." + methodName + ": " + e.Message);
                 return false;
             }
+        }
+
+        // True when the method's compiled IL is a trivial `ldnull; throw`
+        // placeholder (the shape every public Inventory/ItemCollection method
+        // has in stripped reference assemblies such as the RiskOfRain2.GameLibs
+        // NuGet package). Real game builds never produce this shape.
+        private static bool IsStubMethod(MethodBase method)
+        {
+            try
+            {
+                var body = method.GetMethodBody();
+                if (body == null) return false;
+                byte[] il = body.GetILAsByteArray();
+                if (il == null || il.Length > 8) return false;
+                // Scan for the ldnull(0x75)+throw(0x7A) pair covering the body.
+                int nonTrailingNop = il.Length;
+                while (nonTrailingNop > 0 && il[nonTrailingNop - 1] == 0) nonTrailingNop--;
+                bool sawLdnull = false, sawThrow = false;
+                for (int i = 0; i < nonTrailingNop; i++)
+                {
+                    if (il[i] == 0x75) sawLdnull = true;
+                    else if (il[i] == 0x7A) sawThrow = true;
+                    else return false;
+                }
+                return sawLdnull && sawThrow;
+            }
+            catch { return false; }
         }
 
         private static void InitConfig(ConfigFile cfg)
@@ -987,16 +1070,48 @@ namespace megidont
             infectorType = AccessTools.TypeByName("RoR2.MicrobotInfector");
             if (infectorType == null)
             {
-                X10.log.LogInfo("RoR2.MicrobotInfector not found on this game build; extra bot-spawn " +
-                    "duplication stays inactive. Microbot/Nano-bot/Flare-bot STACKS are still multiplied " +
-                    "x" + X10.MultiplierValue + " by the normal pickup patch (core items, always active).");
+                // NOT a DLC problem: microbots are core launch-era items.
+                // At Awake()/chainloader time the game's character content
+                // packs may not have been registered yet, so helper types
+                // like MicrobotInfector can legitimately be missing from the
+                // loaded type tables. Retry lazily: TryLateInstall() is
+                // called from the GiveItem postfix on the first pickups and
+                // from any later attempt until it succeeds.
+                X10.log.LogInfo("RoR2.MicrobotInfector not found yet; will retry when the Captain " +
+                    "content is registered (microbot STACKS are still multiplied x" +
+                    X10.MultiplierValue + " by the normal pickup patch).");
                 return;
             }
+            DoPatch(harmony);
+        }
 
+        // Lazy retry path: attempts to install the Infected postfix once the
+        // type becomes available. Safe to call repeatedly; does nothing after
+        // a successful install.
+        public static void TryLateInstall()
+        {
+            if (installed || lateAttemptFailedHard) return;
+            if (harmonyRef == null) return;
+            if (infectorType != null) { DoPatch(harmonyRef); return; }
+            try
+            {
+                infectorType = AccessTools.TypeByName("RoR2.MicrobotInfector");
+                if (infectorType != null) DoPatch(harmonyRef);
+            }
+            catch { lateAttemptFailedHard = true; }
+        }
+
+        private static Harmony harmonyRef;
+        private static bool lateAttemptFailedHard;
+
+        private static void DoPatch(Harmony harmony)
+        {
+            harmonyRef = harmony;
             infectedMethod = AccessTools.Method(infectorType, "Infected");
             if (infectedMethod == null)
             {
                 X10.log.LogWarning("MicrobotInfector.Infected not found; Captain microbot duplication disabled.");
+                lateAttemptFailedHard = true;
                 return;
             }
             infectedParameters = infectedMethod.GetParameters();
@@ -1024,13 +1139,22 @@ namespace megidont
             if (infectorOwnerField == null)
             {
                 X10.log.LogWarning("Could not resolve the owning master field on MicrobotInfector; " +
-                    "Captain microbot duplication disabled to avoid spawning bots for the wrong character.");
+                    "Captain microbot duplication will retry later.");
                 return;
             }
 
             installed = true;
-            harmony.Patch(infectedMethod,
-                postfix: new HarmonyMethod(AccessTools.Method(typeof(MultiplyMicrobots), "Postfix")));
+            try
+            {
+                harmony.Patch(infectedMethod,
+                    postfix: new HarmonyMethod(AccessTools.Method(typeof(MultiplyMicrobots), "Postfix")));
+            }
+            catch (Exception e)
+            {
+                installed = false;
+                X10.log.LogWarning("Could not patch MicrobotInfector.Infected: " + e.Message);
+                return;
+            }
             X10.log.LogInfo("Patched MicrobotInfector.Infected - Captain microbots will be duplicated x" +
                 X10.CaptainMicrobotMultiplierValue + ".");
         }
