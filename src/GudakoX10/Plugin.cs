@@ -39,7 +39,7 @@ namespace megidont
     [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.11")]
     public class X10 : BaseUnityPlugin
     {
-        private static ManualLogSource log;
+        internal static ManualLogSource log;
 
         private static ConfigEntry<int> multiplier;
         private static ConfigEntry<bool> fixVoidItems;
@@ -491,14 +491,44 @@ namespace megidont
         private static FieldInfo inventoryFieldInItemCollection;
         private static bool inventoryFieldLookupDone;
 
+        // Resolved via reflection so this compiles against every game-lib
+        // package revision (GetBody lives on RoR2.Inventory in newer builds,
+        // and PlayerCharacterMaster only exists since the Captain update).
+        private static MethodInfo inventoryGetBodyMethod;
+        private static Type playerMasterType;
+        private static bool playerApiLookupDone;
+
+        private static void ResolvePlayerApi()
+        {
+            if (playerApiLookupDone) return;
+            playerApiLookupDone = true;
+            inventoryGetBodyMethod = AccessTools.Method(typeof(Inventory), "GetBody");
+            playerMasterType = AccessTools.TypeByName("RoR2.PlayerCharacterMaster");
+        }
+
         internal static bool IsPlayerInventory(Inventory inv)
         {
+            ResolvePlayerApi();
             if (!inv) return false;
-            CharacterBody body = inv.GetBody();
+
+            CharacterBody body = null;
+            if (inventoryGetBodyMethod != null)
+            {
+                try { body = inventoryGetBodyMethod.Invoke(inv, null) as CharacterBody; }
+                catch { body = null; }
+            }
             if (!body) return false;
-            PlayerCharacterMaster master = body.master;
+
+            CharacterMaster master = body.master;
             if (!master) return false;
-            return master.hasAuthority && master.isLocalPlayer;
+
+            // On builds that have it, only a *player* master counts; older
+            // builds without PlayerCharacterMaster fall back to "any master
+            // with authority", which the nameToken guard still keeps safe.
+            if (playerMasterType != null && !playerMasterType.IsInstanceOfType(master))
+                return false;
+
+            return master.hasAuthority;
         }
 
         // Given the `this` instance of ItemCollection.Add, resolve the
@@ -512,9 +542,12 @@ namespace megidont
             if (!inventoryFieldLookupDone)
             {
                 inventoryFieldLookupDone = true;
-                foreach (var f in AccessTools.GetDeclaredFields(itemCollectionInstance.GetType()) ??
-                                  itemCollectionInstance.GetType().GetFields(BindingFlags.Instance |
-                                      BindingFlags.Public | BindingFlags.NonPublic))
+                var declared = AccessTools.GetDeclaredFields(itemCollectionInstance.GetType());
+                var fields = (declared != null && declared.Count > 0)
+                    ? declared.ToArray()
+                    : itemCollectionInstance.GetType().GetFields(BindingFlags.Instance |
+                        BindingFlags.Public | BindingFlags.NonPublic);
+                foreach (var f in fields)
                 {
                     if (f.FieldType == typeof(Inventory))
                     {
@@ -576,7 +609,6 @@ namespace megidont
             return true;
         }
     }
-
     // ---- Captain microbot duplication --------------------------------------
     // The Captain's microbots are created by RoR2.MicrobotInfector.Infected(),
     // which the game calls once per bot gained (pickup, drop transfer, or
@@ -586,6 +618,10 @@ namespace megidont
     // config. All other characters are untouched, and re-entry from our own
     // duplicate invocations is blocked so the count can never explode
     // recursively (x10 -> x100 -> ...).
+    //
+    // MicrobotInfector and PlayerCharacterMaster only exist in newer RoR2
+    // builds, so every reference to them is resolved via reflection at patch
+    // install time; on older games the feature simply stays inactive.
     internal static class MultiplyMicrobots
     {
         // Reentrancy guard for the duplicate invocations below.
@@ -594,41 +630,56 @@ namespace megidont
         // Cached reflection handles for RoR2.MicrobotInfector (resolved at
         // install time so the mod still loads on builds where the type was
         // renamed/moved - the patch simply stays inactive then).
+        private static Type infectorType;
         private static MethodInfo infectedMethod;
         private static ParameterInfo[] infectedParameters;
-        private static FieldInfo infectorOwnerField; // PlayerCharacterMaster owning the infector
+        private static FieldInfo infectorOwnerField;   // CharacterMaster field owning the infector
+        private static Type playerMasterType;          // RoR2.PlayerCharacterMaster, if present
         private static bool installed;
 
         // Called manually from X10.Awake() (instead of attribute-based
         // patching) because the target method must be discovered via
-        // reflection at runtime.
+        // reflection at load time.
         public static void Install(Harmony harmony)
         {
-            Type infectorType = AccessTools.TypeByName("RoR2.MicrobotInfector");
+            infectorType = AccessTools.TypeByName("RoR2.MicrobotInfector");
             if (infectorType == null)
             {
-                log.LogWarning("RoR2.MicrobotInfector not found; Captain microbot duplication disabled.");
+                X10.log.LogWarning("RoR2.MicrobotInfector not found; Captain microbot duplication disabled.");
                 return;
             }
 
             infectedMethod = AccessTools.Method(infectorType, "Infected");
             if (infectedMethod == null)
             {
-                log.LogWarning("MicrobotInfector.Infected not found; Captain microbot duplication disabled.");
+                X10.log.LogWarning("MicrobotInfector.Infected not found; Captain microbot duplication disabled.");
                 return;
             }
             infectedParameters = infectedMethod.GetParameters();
 
             // The owner field naming differs across game versions; discover it
-            // by type instead of hard-coding a name. Without it we cannot tell
+            // by type instead of hard-coding a name. Prefer the concrete
+            // PlayerCharacterMaster when the game has it, otherwise accept any
+            // CharacterMaster-typed field (IsCaptainPlayer double-checks the
+            // runtime type anyway). Without an owner field we cannot tell
             // Captain players from everyone else, so stay inactive if missing.
+            playerMasterType = AccessTools.TypeByName("RoR2.PlayerCharacterMaster");
             var flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
-            infectorOwnerField = infectorType.GetFields(flags).FirstOrDefault(
-                f => typeof(PlayerCharacterMaster).IsAssignableFrom(f.FieldType));
+            var fields = infectorType.GetFields(flags);
+            if (playerMasterType != null)
+            {
+                infectorOwnerField = fields.FirstOrDefault(
+                    f => playerMasterType.IsAssignableFrom(f.FieldType));
+            }
+            if (infectorOwnerField == null)
+            {
+                infectorOwnerField = fields.FirstOrDefault(
+                    f => typeof(CharacterMaster).IsAssignableFrom(f.FieldType));
+            }
 
             if (infectorOwnerField == null)
             {
-                log.LogWarning("Could not resolve the owning master field on MicrobotInfector; " +
+                X10.log.LogWarning("Could not resolve the owning master field on MicrobotInfector; " +
                     "Captain microbot duplication disabled to avoid spawning bots for the wrong character.");
                 return;
             }
@@ -636,7 +687,7 @@ namespace megidont
             installed = true;
             harmony.Patch(infectedMethod,
                 postfix: new HarmonyMethod(AccessTools.Method(typeof(MultiplyMicrobots), "Postfix")));
-            log.LogInfo("Patched MicrobotInfector.Infected - Captain microbots will be duplicated x" +
+            X10.log.LogInfo("Patched MicrobotInfector.Infected - Captain microbots will be duplicated x" +
                 X10.CaptainMicrobotMultiplierValue + ".");
         }
 
@@ -652,7 +703,7 @@ namespace megidont
             try
             {
                 // Whose infector is this? Only Captain players get the bonus.
-                var owner = infectorOwnerField.GetValue(__instance) as PlayerCharacterMaster;
+                var owner = infectorOwnerField.GetValue(__instance) as CharacterMaster;
                 if (owner == null) return;
                 if (!IsCaptainPlayer(owner)) return;
 
@@ -666,7 +717,7 @@ namespace megidont
                 object[] replayArgs = null;
                 if (infectedParameters.Length == 0)
                 {
-                    replayArgs = Array.Empty<object>();
+                    replayArgs = new object[0];
                 }
                 else if (infectedParameters.Length == 1 &&
                          !infectedParameters[0].ParameterType.IsValueType &&
@@ -694,23 +745,31 @@ namespace megidont
             }
             catch (Exception e)
             {
-                log.LogWarning("Microbot duplication skipped due to error: " + e.Message);
+                X10.log.LogWarning("Microbot duplication skipped due to error: " + e.Message);
             }
         }
 
-        // True when the given master is a player-controlled Captain. Matched
-        // against the body's stable identifier first, with an asset-name
-        // fallback for builds where the identifier catalog changed.
-        private static bool IsCaptainPlayer(PlayerCharacterMaster master)
+        // True when the given master is a player-controlled Captain. Checks
+        // the runtime type against PlayerCharacterMaster when the game build
+        // has one, then matches the body's stable identifier (falling back to
+        // the prefab name) so other Captain-like masters (e.g. the Drone
+        // event variant) and ally-bots do not receive the bonus.
+        private static bool IsCaptainPlayer(CharacterMaster master)
         {
-            CharacterBody body = master ? master.body : null;
+            if (playerMasterType != null && !playerMasterType.IsInstanceOfType(master))
+                return false;
+
+            if (!master) return false;
+            var masterGo = master.gameObject;
+            if (masterGo == null) return false;
+            CharacterBody body = masterGo.GetComponent<CharacterBody>();
             if (!body) return false;
 
             string identifier = GetBodyIdentifier(body);
             if (identifier.IndexOf("Captain", StringComparison.OrdinalIgnoreCase) >= 0)
                 return true;
 
-            GameObject bodyPrefab = body.gameObject;
+            var bodyPrefab = body.gameObject;
             if (bodyPrefab != null &&
                 bodyPrefab.name.IndexOf("Captain", StringComparison.OrdinalIgnoreCase) >= 0)
                 return true;
