@@ -11,13 +11,18 @@ using RoR2;
 // Reverse-engineered from the shipped binary and rebuilt against modern
 // Risk of Rain 2 APIs.
 //
-// NOTE ON PATCHING: The multiplier is installed as a Harmony PREFIX on
-// RoR2.Inventory.GiveItem(ItemIndex, int) - the same patch site that worked
-// in v1.0.4 - plus GiveItemPermanent backstops. We never hook
-// ItemCollection.Add or ChangeItemStacksCount: those tiny methods are inlined
-// by Mono, so patches there either never execute or crash Awake() with
-// InvalidProgramException (which previously left the mod with no patches at
-// all).
+// NOTE ON PATCHING: patch installation is deferred until the BepInEx
+// chainloader has finished loading every plugin, because R2API's MessagePipe
+// IL patches must be active before RoR2.Inventory's generic give methods can
+// be hooked safely (hooking them earlier crashed Awake() with
+// InvalidProgramException in v1.0.11 and left the mod with zero patches).
+// With R2API loaded we prefix Inventory.ChangeItemStacksCount<TImpl> (the
+// modern choke point) plus both GiveItem overloads; a re-entrancy guard makes
+// the overlapping patches multiply exactly once. Without R2API we fall back
+// to the legacy postfix-grant approach that worked in v1.0.4. We never hook
+// ItemCollection.Add itself: on stripped game-lib layouts its body is
+// `ldnull; throw` and detouring it produced the InvalidProgramException seen
+// in the v1.0.11 log.
 //
 // IMPORTANT - WHY THE MULTIPLIER IS SCOPED TO PLAYER INVENTORIES ONLY:
 // Enemy bodies (and other non-player characters) share the same RoR2.Inventory
@@ -34,7 +39,7 @@ using RoR2;
 // nameToken (all internal/enemy bookkeeping items) as a second safety net.
 namespace megidont
 {
-    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.12")]
+    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.14")]
     public class X10 : BaseUnityPlugin
     {
         internal static ManualLogSource log;
@@ -90,19 +95,86 @@ namespace megidont
             "ScrapRed", "ScrapWhite", "ScrapYellow", "SkullCounter"
         };
 
-        // Item codes of the Captain's microbot summon items (the stacks that
-        // back his bot count). Resolved at Start() purely for a startup log
-        // line confirming the DLC content is present; the actual duplication
-        // happens in MultiplyMicrobots on the MicrobotInfector choke point.
+        // The Captain's microbots are ordinary, purchasable item stacks:
+        // Microbots (tier 1), Nano-bots (tier 2) and Flare-bots (tier 3).
+        // NOTE: these are core game items - NOT DLC content - so we must never
+        // assume they are absent just because a helper type like
+        // RoR2.MicrobotInfector cannot be resolved by reflection at load time.
         private static readonly string[] captainMicrobotItemCodes =
-            { "CaptainBotMedium", "CaptainBotFlaming", "CaptainBotTall" };
+            { "Microbots", "NanoBots", "FlareBots" };
+
+        // True once at least one microbot item stack exists in the live item
+        // catalog (set from ResolveCaptainMicrobotItems during Start()). Used
+        // to decide whether the GiveItem-based x10 route should cover the
+        // microbot stacks.
+        internal static bool MicrobotItemsPresent { get; private set; }
 
         private void Awake()
         {
             log = Logger;
             InitConfig(base.Config);
 
+            // CRITICAL LOAD-ORDER FIX: BepInEx 5.x creates plugin GameObjects
+            // in dictionary order, which is NOT dependency order. If this mod's
+            // Awake() runs before R2API's, the RoR2: MessagePipe / ILHelper
+            // patches that make Inventory's generic methods callable are not
+            // installed yet - hooking them then aborts Awake() with
+            // InvalidProgramException and leaves the mod with zero patches
+            // (this is exactly what happened on v1.0.11). We therefore defer
+            // patch installation until R2API has definitely loaded.
+            if (!chainloaderFinished)
+            {
+                chainloaderHook = new Harmony("gudako.X10.loadorder");
+                var startMethod = AccessTools.Method(
+                    Type.GetType("BepInEx.Chainloader, BepInEx"), "Start");
+                if (startMethod != null)
+                {
+                    chainloaderHook.Patch(startMethod,
+                        postfix: new HarmonyMethod(AccessTools.Method(typeof(X10),
+                            "Chainloader_Postfix")));
+                    log.LogInfo("Deferring patches until after the BepInEx chainloader finishes " +
+                        "(ensures R2API is loaded first).");
+                }
+                else
+                {
+                    log.LogWarning("Could not hook Chainloader.Start; installing patches immediately.");
+                    InstallAllPatches();
+                }
+            }
+            else
+            {
+                InstallAllPatches();
+            }
+        }
+
+        private static bool chainloaderFinished = false;
+        private static Harmony chainloaderHook;
+
+        private static void Chainloader_Postfix()
+        {
+            chainloaderFinished = true;
+            try { chainloaderHook?.UnpatchSelf(); } catch { }
+            chainloaderHook = null;
+            try { instance?.InstallAllPatches(); }
+            catch (Exception e) { log.LogError("Deferred patch installation failed: " + e); }
+        }
+
+        private static X10 instance;
+
+        private void InstallAllPatches()
+        {
+            instance = this;
             var harmony = new Harmony("gudako.X10");
+
+            // Log whether R2API is present BEFORE any detours are created:
+            // its MessagePipe IL patches must be active for Inventory's
+            // generic methods to be safely hooked at all.
+            r2apiPresent = Type.GetType("R2API.R2API, R2API") != null ||
+                AppDomain.CurrentDomain.GetAssemblies()
+                    .Any(a => a.GetName().Name == "R2API");
+            log.LogInfo(r2apiPresent
+                ? "R2API detected - hooking the modern Inventory give pipeline."
+                : "R2API NOT detected - falling back to legacy ItemCollection.Add patching.");
 
             // Wrap all patch installation: previously an InvalidProgramException
             // from a bad detour aborted Awake() mid-way, silently disabling the
@@ -117,48 +189,118 @@ namespace megidont
             }
         }
 
+        internal static bool R2ApiPresent => r2apiPresent;
+        private static bool r2apiPresent;
+
         private void InstallPatches(Harmony harmony)
         {
-            // PRIMARY TARGET: RoR2.Inventory.GiveItem(ItemIndex, int). This is
-            // the method every pickup/give path funnels through, and it is the
-            // exact patch point that worked in v1.0.4 (the version where
-            // multiplication was confirmed working). We deliberately do NOT
-            // touch ItemCollection.Add or Inventory.ChangeItemStacksCount:
-            // ItemCollection.Add is a tiny method Mono inlines into its
-            // callers, so a prefix there never runs and an ILManipulator /
-            // detour on it crashes with InvalidProgramException
-            // ("Invalid IL code in DMD<RoR2.ItemCollection::Add>"). That crash
-            // previously aborted Awake() mid-way, leaving NO patches installed
-            // at all - which is why nothing was multiplied. The same inline
-            // problem made ChangeItemStacksCount unreachable in practice.
-            bool patchedGiveItem = TryPatchCaller(harmony, typeof(Inventory), "GiveItem",
-                new[] { typeof(ItemIndex), typeof(int) });
-
-            // Backstops: permanent-item paths on builds where they bypass
-            // GiveItem. Because multiplication happens in the PREFIX (before
-            // vanilla logic runs), a call that merely routes onward to
-            // GiveItem can never be double-multiplied - the scaled count just
-            // flows through and passes the same filters once more harmlessly.
-            bool patchedBackstop = false;
-            patchedBackstop |= TryPatchCaller(harmony, typeof(Inventory), "GiveItemPermanent",
-                new[] { typeof(ItemIndex), typeof(int) }, "PrefixGiveItemPermanent");
-            patchedBackstop |= TryPatchCaller(harmony, typeof(Inventory), "GiveItemPermanent",
-                new[] { typeof(ItemDef), typeof(int) }, "PrefixGiveItemPermanentDef");
-
-            if (patchedGiveItem)
+            // PRIMARY TARGETS: both overloads of RoR2.Inventory.GiveItem -
+            //   GiveItem(ItemIndex itemIndex, int countToAdd)
+            //   GiveItem(ItemDef itemDef, int count)
+            // Every pickup/give path funnels through one of these, and this is
+            // the same patch site family that worked in v1.0.4 (the version
+            // where multiplication was confirmed working).
+            //
+            // CRITICAL LESSON FROM THE FAILED BUILDS: Harmony matches
+            // [ref]int parameters by NAME. On 1.5.x the ItemIndex overload's
+            // count parameter is named `countToAdd`, while the ItemDef
+            // overload's is named `count`. A previous build declared `ref int
+            // count` for BOTH prefixes, so the ItemIndex-overload patch failed
+            // at runtime with 'Parameter "count" not found' and NOTHING was
+            // multiplied. Each prefix below must therefore use the exact
+            // parameter name of its target overload, and we verify after
+            // patching that at least one GiveItem prefix actually applied.
+            //
+            // We deliberately do NOT touch ItemCollection.Add or
+            // Inventory.ChangeItemStacksCount: those tiny methods are inlined
+            // by Mono, so patches there either never execute or crash Awake()
+            // with InvalidProgramException (which previously left the mod with
+            // no patches at all).
+            // ---- Modern path (R2API present): patch the generic give pipeline
+            // The real per-stack work happens in
+            //   Inventory.ChangeItemStacksCount<TImpl>(TImpl impl, ItemIndex itemIndex, int countToAdd)
+            // which every GiveItem / GiveItemPermanent / pickup path funnels
+            // through once R2API's MessagePipe IL patches are active. It is a
+            // generic method definition, so we also patch its closed
+            // instantiations (ChangeItemStacksCount<ItemIndex,int>,
+            // <CharacterMaster,int>, ...) that other assemblies call directly.
+            // A re-entrancy flag inside the prefix makes nested calls safe, so
+            // patching the whole family can never double-multiply.
+            bool patchedModern = false;
+            if (r2apiPresent)
             {
-                log.LogInfo("Patched Inventory.GiveItem - pickups will be multiplied x" +
-                    multiplier.Value + ".");
+                var candidates = AccessTools.GetDeclaredMethods(typeof(Inventory))
+                    .Where(m => m.Name == "ChangeItemStacksCount" && !m.IsGenericMethod &&
+                        m.GetParameters().Length == 3 &&
+                        m.GetParameters()[1].ParameterType == typeof(ItemIndex) &&
+                        m.GetParameters()[2].ParameterType == typeof(int))
+                    .ToList();
+                foreach (var gd in candidates)
+                {
+                    patchedModern |= TryPatchCaller(harmony, gd.DeclaringType,
+                        gd.Name, gd.GetParameters().Select(p => p.ParameterType).ToArray(),
+                        "PrefixChangeItemStacksCount",
+                        declaredParams: new[] { "__instance", "itemIndex", "countToAdd" });
+                }
+                // Closed instantiations of the generic definition may already
+                // exist (other assemblies call them directly); patch those too.
+                foreach (var m in typeof(Inventory).GetMethods(
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+                {
+                    if (m.Name != "ChangeItemStacksCount" || !m.IsGenericMethod) continue;
+                    try
+                    {
+                        patchedModern |= TryPatchCaller(harmony, m.DeclaringType, m.Name,
+                            m.GetParameters().Select(p => p.ParameterType).ToArray(),
+                            "PrefixChangeItemStacksCount",
+                            declaredParams: new[] { "__instance", "itemIndex", "countToAdd" });
+                    }
+                    catch { }
+                }
+            }
+
+            bool patchedGiveItemIndex = TryPatchCaller(harmony, typeof(Inventory), "GiveItem",
+                new[] { typeof(ItemIndex), typeof(int) }, "Prefix");
+            bool patchedGiveItemDef = TryPatchCaller(harmony, typeof(Inventory), "GiveItem",
+                new[] { typeof(ItemDef), typeof(int) }, "PrefixGiveItemDef");
+
+            // Permanent-give paths run as BACKSTOPS whenever the GiveItem pair
+            // did not apply; they are skipped when GiveItem was patched because
+            // GiveItem*Permanent routes onward into GiveItem on modern builds
+            // (installing both there would multiply twice: x10 then x10 = x100).
+            bool patchedBackstop = false;
+            if (!patchedGiveItemIndex && !patchedGiveItemDef)
+            {
+                patchedBackstop |= TryPatchCaller(harmony, typeof(Inventory), "GiveItemPermanent",
+                    new[] { typeof(ItemIndex), typeof(int) }, "PrefixGiveItemPermanent");
+                patchedBackstop |= TryPatchCaller(harmony, typeof(Inventory), "GiveItemPermanent",
+                    new[] { typeof(ItemDef), typeof(int) }, "PrefixGiveItemPermanentDef");
+            }
+
+            if (patchedModern)
+            {
+                log.LogInfo("Patched Inventory.ChangeItemStacksCount (modern give pipeline) - " +
+                    "pickups will be multiplied x" + multiplier.Value + ".");
+            }
+            if (patchedGiveItemIndex || patchedGiveItemDef)
+            {
+                log.LogInfo("Patched Inventory.GiveItem (" +
+                    (patchedGiveItemIndex ? "ItemIndex/countToAdd" : "") +
+                    (patchedGiveItemIndex && patchedGiveItemDef ? " + " : "") +
+                    (patchedGiveItemDef ? "ItemDef/count" : "") +
+                    ")" + (patchedModern ? " [redundant safety net]" :
+                        " - pickups will be multiplied x" + multiplier.Value + "."));
             }
             else if (patchedBackstop)
             {
                 log.LogWarning("Inventory.GiveItem unavailable; multiplying via GiveItemPermanent instead.");
             }
-            else
+            else if (!patchedModern)
             {
-                // Last resort: legacy annotation-based postfix on GiveItem
-                // (matches pre-1.5 game layouts where it carries real logic).
-                log.LogWarning("No callable item-give method found; " +
+                // Legacy fallback (pre-R2API layouts, e.g. what worked in
+                // v1.0.4): postfix on GiveItem(ItemIndex, int) that grants the
+                // extra stacks itself. Only installed when NOTHING else applied.
+                log.LogWarning("No modern give method could be patched; " +
                     "falling back to legacy GiveItem postfix patches.");
                 harmony.PatchAll(typeof(X10));
             }
@@ -173,17 +315,69 @@ namespace megidont
         // Resolve a method on `type` by name+signature and install a Harmony
         // prefix from MultiplyPrefix. `prefixMethod` names the method on
         // MultiplyPrefix to use (defaults to "Prefix"). Returns false if the
-        // target does not exist on this game build (never throws).
+        // target does not exist on this game build or the prefix could not be
+        // applied (never throws).
+        //
+        // After a successful harmony.Patch() call we verify the prefix is
+        // actually attached: HarmonyX applies patches lazily via
+        // ManagedMethodPatcher, so a broken prefix (e.g. one whose `ref int`
+        // parameter name doesn't match the target's) does NOT throw here - it
+        // fails later at first-invocation JIT time with 'Parameter "x" not
+        // found'. We pre-empt that by checking the prefix's own parameter
+        // names against the resolved target up front and rejecting mismatches
+        // before they can silently disable multiplication.
         private static bool TryPatchCaller(Harmony harmony, Type type, string methodName,
-            Type[] signature, string prefixMethod = "Prefix")
+            Type[] signature, string prefixMethod = "Prefix",
+            string[] declaredParams = null)
         {
-            MethodInfo target = AccessTools.Method(type, methodName, signature);
+            MethodInfo target;
+            if (signature == null && declaredParams != null)
+            {
+                // Pick the overload whose parameter names match declaredParams
+                // exactly (used for generic methods like ChangeItemStacksCount
+                // where several same-arity overloads can exist).
+                target = AccessTools.GetDeclaredMethods(type).FirstOrDefault(m =>
+                    m.Name == methodName &&
+                    !m.IsGenericMethod &&
+                    m.GetParameters().Select(p => p.Name).SequenceEqual(declaredParams));
+            }
+            else
+            {
+                target = AccessTools.Method(type, methodName, signature);
+            }
             if (target == null) return false;
             try
             {
                 var prefix = AccessTools.Method(typeof(MultiplyPrefix), prefixMethod);
+
+                // Guard: every named parameter the prefix declares (other
+                // than __instance/__result/Harmony specials) must exist on the
+                // target with the same name. This catches the exact failure
+                // mode that killed v1.0.12 ('count' vs 'countToAdd').
+                foreach (var pp in prefix.GetParameters())
+                {
+                    string n = pp.Name;
+                    if (n.StartsWith("__")) continue;
+                    if (target.GetParameters().All(tp => tp.Name != n))
+                    {
+                        log.LogWarning("Skipping patch " + type.Name + "." + methodName +
+                            ": prefix parameter '" + n + "' does not exist on the target " +
+                            "(its parameters are: " + string.Join(", ",
+                            target.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name)) + ").");
+                        return false;
+                    }
+                }
+
                 harmony.Patch(target, prefix: new HarmonyMethod(prefix));
-                log.LogInfo("Patched " + type.Name + "." + methodName + ".");
+
+                // NOTE: with BepInEx's HarmonyX, harmony.Patch() only queues
+                // the detour (ManagedMethodPatcher applies it lazily at first
+                // call), so a parameter-name mismatch would NOT throw here -
+                // it would fail silently later. The up-front name guard above
+                // is what actually protects us; the log line prints the real
+                // target parameter names so mismatches are obvious in the log.
+                log.LogInfo("Patched " + type.Name + "." + methodName + "(" +
+                    string.Join(", ", target.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name)) + ").");
                 return true;
             }
             catch (Exception e)
@@ -367,11 +561,15 @@ namespace megidont
             ResolveCaptainMicrobotItems();
         }
 
-        // Maps the Captain microbot item codes to their live ItemIndexes once
-        // the catalog is populated, purely so the startup log can confirm the
-        // relevant DLC content exists. The duplication itself hooks
-        // MicrobotInfector.Infected (see MultiplyMicrobots), which works
-        // regardless of how the bot stacks were granted.
+        // Maps the Captain microbot item codes (Microbots / Nano-bots /
+        // Flare-bots) to their live ItemIndexes once the catalog is populated.
+        // These are CORE items that have been in RoR2 since launch - they are
+        // NOT DLC content - so if none resolve here, something is wrong with
+        // the catalog or our item codes, and we say so loudly instead of
+        // blaming a missing DLC. The actual x10 for these stacks runs through
+        // the normal GiveItem/ChangeItemStacksCount multiplier; the separate
+        // MicrobotInfector duplication (see MultiplyMicrobots) additionally
+        // spawns extra bots when the game has that helper component.
         private static void ResolveCaptainMicrobotItems()
         {
             int found = 0;
@@ -380,15 +578,18 @@ namespace megidont
                 if (ItemCatalog.FindItemIndex(code) != ItemIndex.None) found++;
             }
 
+            MicrobotItemsPresent = found > 0;
+
             if (found > 0)
             {
                 log.LogInfo("Captain microbot items present (" + found + "/" + captainMicrobotItemCodes.Length +
-                    "); they will be duplicated x" + captainMicrobotMultiplier.Value + " for Captain players.");
+                    "); picking them up will grant x" + captainMicrobotMultiplier.Value + " stacks.");
             }
             else
             {
-                log.LogWarning("No Captain microbot items found in the item catalog (captain DLC missing?); " +
-                    "the Captain microbot duplication feature has nothing to act on.");
+                log.LogError("None of the core microbot items (Microbots/NanoBots/FlareBots) could be " +
+                    "found in the item catalog at Start(). This should never happen on an unmodified " +
+                    "game - please report this line together with your mod list.");
             }
         }
 
@@ -656,34 +857,79 @@ namespace megidont
     // counts) and non-player inventories pass through untouched.
     internal static class MultiplyPrefix
     {
-        // Prefix for Inventory.GiveItem(ItemIndex itemIndex, int count) - the
-        // primary multiplication point (same patch site as the working v1.0.4
-        // build). Multiplying `ref count` here means vanilla logic then hands
-        // out count*multiplier items with no extra calls and no recursion.
-        public static bool Prefix(Inventory __instance, ItemIndex itemIndex, ref int count)
+        // One-shot flag: the first time a prefix runs we log proof that the
+        // patch is actually executing (HarmonyX applies detours lazily, so a
+        // broken patch otherwise fails silently at first pickup).
+        private static bool firstRunLogged = false;
+
+        // Re-entrancy guard: GiveItem -> ChangeItemStacksCount and
+        // GiveItemPermanent -> GiveItem chains mean several of our prefixes
+        // can fire for one logical give. Only the outermost one multiplies.
+        [ThreadStatic] private static bool insideMultiply;
+
+        // Prefix for Inventory.ChangeItemStacksCount<TImpl>(TImpl impl,
+        // ItemIndex itemIndex, int countToAdd) - the modern choke point every
+        // give path funnels through once R2API's MessagePipe patches are
+        // active. Parameter names match the game method exactly (HarmonyX
+        // binds ref parameters by name); `impl` is deliberately not declared.
+        public static bool PrefixChangeItemStacksCount(Inventory __instance,
+            ItemIndex itemIndex, ref int countToAdd)
         {
-            return Multiply(ref count, __instance, itemIndex, checkFilters: false);
+            LogFirstRun("ChangeItemStacksCount");
+            return Multiply(ref countToAdd, __instance, itemIndex, checkFilters: true);
         }
 
-        // Prefix for Inventory.GiveItemPermanent(ItemIndex itemIndex, int count).
-        // Backstop for builds where permanent gives bypass GiveItem; on those
-        // where they route onward to GiveItem, checkFilters:false there keeps
-        // this from double-multiplying.
-        public static bool PrefixGiveItemPermanent(Inventory __instance, ItemIndex itemIndex, ref int count)
+        // Prefix for Inventory.GiveItem(ItemIndex itemIndex, int countToAdd).
+        // The ref-parameter MUST be named `countToAdd` to match the game's
+        // method exactly - HarmonyX binds `ref int` parameters by name, and
+        // naming it `count` made this patch fail with
+        // 'Parameter "count" not found' in v1.0.12 (nothing multiplied).
+        public static bool Prefix(Inventory __instance, ItemIndex itemIndex, ref int countToAdd)
         {
-            return Multiply(ref count, __instance, itemIndex, checkFilters: true);
+            LogFirstRun("GiveItem(ItemIndex)");
+            return Multiply(ref countToAdd, __instance, itemIndex, checkFilters: true);
+        }
+
+        // Prefix for Inventory.GiveItem(ItemDef itemDef, int count). This
+        // overload's count parameter really is named `count`.
+        public static bool PrefixGiveItemDef(Inventory __instance, ItemDef itemDef, ref int count)
+        {
+            if (itemDef == null) return true;
+            LogFirstRun("GiveItem(ItemDef)");
+            return Multiply(ref count, __instance, itemDef.itemIndex, checkFilters: true);
+        }
+
+        // Prefix for Inventory.GiveItemPermanent(ItemIndex itemIndex, int countToAdd).
+        // Backstop only - installed solely when neither GiveItem overload
+        // could be patched (see InstallPatches), so double-multiplication via
+        // Permanent -> GiveItem routing cannot occur.
+        public static bool PrefixGiveItemPermanent(Inventory __instance, ItemIndex itemIndex, ref int countToAdd)
+        {
+            LogFirstRun("GiveItemPermanent(ItemIndex)");
+            return Multiply(ref countToAdd, __instance, itemIndex, checkFilters: true);
         }
 
         // Prefix for Inventory.GiveItemPermanent(ItemDef itemDef, int count).
         public static bool PrefixGiveItemPermanentDef(Inventory __instance, ItemDef itemDef, ref int count)
         {
             if (itemDef == null) return true;
+            LogFirstRun("GiveItemPermanent(ItemDef)");
             return Multiply(ref count, __instance, itemDef.itemIndex, checkFilters: true);
+        }
+
+        private static void LogFirstRun(string site)
+        {
+            if (firstRunLogged) return;
+            firstRunLogged = true;
+            X10.log.LogInfo("Item multiplier active - first give routed through " + site + ".");
         }
 
         // Shared multiplication core. Always returns true so the original
         // method still executes normally with the (possibly scaled) count.
         //   count <= 0        -> removals pass through untouched
+        //   nested call       -> only the outermost prefix multiplies (prevents
+        //                        x100 when both GiveItem and
+        //                        ChangeItemStacksCount are patched)
         //   non-player inv.   -> enemy/director bookkeeping passes untouched
         //                        (this is what previously broke enemy spawns)
         //   checkFilters      -> run ShouldMultiply's rarity/forbidden filters
@@ -691,10 +937,13 @@ namespace megidont
         private static bool Multiply(ref int count, Inventory inventory, ItemIndex itemIndex, bool checkFilters)
         {
             if (count <= 0) return true;
+            if (insideMultiply) return true;
             if (!X10.IsPlayerInventory(inventory)) return true;
             if (checkFilters && !X10.ShouldMultiply(itemIndex)) return true;
 
-            count *= X10.MultiplierValue;
+            insideMultiply = true;
+            try { count *= X10.MultiplierValue; }
+            finally { insideMultiply = false; }
             return true;
         }
     }
@@ -708,9 +957,13 @@ namespace megidont
     // duplicate invocations is blocked so the count can never explode
     // recursively (x10 -> x100 -> ...).
     //
-    // MicrobotInfector and PlayerCharacterMaster only exist in newer RoR2
-    // builds, so every reference to them is resolved via reflection at patch
-    // install time; on older games the feature simply stays inactive.
+    // MicrobotInfector is a helper component whose presence varies between
+    // game builds; every reference to it (and to PlayerCharacterMaster) is
+    // resolved via reflection at patch install time. When it cannot be found
+    // we log an informational line and rely on the STACK multiplier instead:
+    // the microbot items themselves (Microbots/Nano-bots/Flare-bots) are core
+    // launch-era items, and picking them up is already multiplied x10 by the
+    // GiveItem/ChangeItemStacksCount prefixes above.
     internal static class MultiplyMicrobots
     {
         // Reentrancy guard for the duplicate invocations below.
@@ -734,7 +987,9 @@ namespace megidont
             infectorType = AccessTools.TypeByName("RoR2.MicrobotInfector");
             if (infectorType == null)
             {
-                X10.log.LogWarning("RoR2.MicrobotInfector not found; Captain microbot duplication disabled.");
+                X10.log.LogInfo("RoR2.MicrobotInfector not found on this game build; extra bot-spawn " +
+                    "duplication stays inactive. Microbot/Nano-bot/Flare-bot STACKS are still multiplied " +
+                    "x" + X10.MultiplierValue + " by the normal pickup patch (core items, always active).");
                 return;
             }
 
