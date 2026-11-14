@@ -1,0 +1,21 @@
+=== Assembly ===
+Name=ExamplePlugin Ver=1.0.0.0
+=== AssemblyRef ===
+[1] netstandard v2.0.0.0 
+[2] BepInEx v5.4.19.0 
+[3] 0Harmony v2.7.0.0 
+[4] RoR2 v0.0.0.0 
+=== ModuleRef ===
+
+=== Fields (with decoded sig) ===
+Traceback (most recent call last):
+  File "/workspace/tools/decode.py", line 145, in <module>
+    t,static = parse_field_sig(r.Signature)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/tools/decode.py", line 140, in parse_field_sig
+    t,i=read_type(i)
+        ^^^^^^^^^^^^
+  File "/workspace/tools/decode.py", line 122, in read_type
+    td=(b[i]|(b[i+1]<<8)|(b[i+2]<<16)|(b[i+3]<<24))>>1
+              ~^^^^^
+IndexError: index out of range

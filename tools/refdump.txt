@@ -1,0 +1,115 @@
+=== AssemblyRef ===
+1 netstandard
+2 BepInEx
+3 0Harmony
+4 RoR2
+=== TypeRef ===
+1 <dnfile.stream.HeapItemString object at 0x7f9959f0d1f0> CompilationRelaxationsAttribute
+2 <dnfile.stream.HeapItemString object at 0x7f9959f0d280> RuntimeCompatibilityAttribute
+3 <dnfile.stream.HeapItemString object at 0x7f9959f0d310> DebuggableAttribute
+4 <dnfile.stream.HeapItemString object at 0x7f9959f0d3d0> DebuggingModes
+5 <dnfile.stream.HeapItemString object at 0x7f9959f0d460> TargetFrameworkAttribute
+6 <dnfile.stream.HeapItemString object at 0x7f9959f0d4f0> AssemblyCompanyAttribute
+7 <dnfile.stream.HeapItemString object at 0x7f9959f0d580> AssemblyConfigurationAttribute
+8 <dnfile.stream.HeapItemString object at 0x7f9959f0d610> AssemblyFileVersionAttribute
+9 <dnfile.stream.HeapItemString object at 0x7f9959f0d6a0> AssemblyInformationalVersionAttribute
+10 <dnfile.stream.HeapItemString object at 0x7f9959f0d730> AssemblyProductAttribute
+11 <dnfile.stream.HeapItemString object at 0x7f9959f0d7c0> AssemblyTitleAttribute
+12 <dnfile.stream.HeapItemString object at 0x7f9959f0d880> SecurityAction
+13 <dnfile.stream.HeapItemString object at 0x7f9959f0d970> SecurityPermissionAttribute
+14 <dnfile.stream.HeapItemString object at 0x7f9959f0da90> UnverifiableCodeAttribute
+15 <dnfile.stream.HeapItemString object at 0x7f9959f0dbe0> BepInDependency
+16 <dnfile.stream.HeapItemString object at 0x7f9959f0dd30> DependencyFlags
+17 <dnfile.stream.HeapItemString object at 0x7f9959f0de80> BepInPlugin
+18 <dnfile.stream.HeapItemString object at 0x7f9959f0e000> HarmonyPatch
+19 <dnfile.stream.HeapItemString object at 0x7f9959f0e150> BaseUnityPlugin
+20 <dnfile.stream.HeapItemString object at 0x7f9959f0e2d0> ManualLogSource
+21 <dnfile.stream.HeapItemString object at 0x7f9959f0e3f0> ConfigFile
+22 <dnfile.stream.HeapItemString object at 0x7f9959f0e510> ConfigEntry`1
+23 <dnfile.stream.HeapItemString object at 0x7f9959f0e660> HarmonyPostfix
+24 <dnfile.stream.HeapItemString object at 0x7f9959f0e7e0> Type
+25 <dnfile.stream.HeapItemString object at 0x7f9959f0e960> ItemCatalog
+26 <dnfile.stream.HeapItemString object at 0x7f9959f0eb10> HarmonyPrefix
+27 <dnfile.stream.HeapItemString object at 0x7f9959f0ec90> Inventory
+28 <dnfile.stream.HeapItemString object at 0x7f9959f0ee10> ItemIndex
+29 <dnfile.stream.HeapItemString object at 0x7f9959f0efc0> ItemDef
+30 <dnfile.stream.HeapItemString object at 0x7f9959f0f0e0> CompilerGeneratedAttribute
+31 <dnfile.stream.HeapItemString object at 0x7f9959f0f260> Object
+32 <dnfile.stream.HeapItemString object at 0x7f9959f0f3e0> ValueType
+33 <dnfile.stream.HeapItemString object at 0x7f9959f0f530> RuntimeTypeHandle
+34 <dnfile.stream.HeapItemString object at 0x7f9959f0f6e0> Harmony
+35 <dnfile.stream.HeapItemString object at 0x7f9959f0f860> String
+36 <dnfile.stream.HeapItemString object at 0x7f9959f0f9e0> RoR2Content
+37 <dnfile.stream.HeapItemString object at 0x7f9959f0fb30> Items
+38 <dnfile.stream.HeapItemString object at 0x7f9959f0fcb0> JunkContent
+39 <dnfile.stream.HeapItemString object at 0x7f9959f0fe00> Items
+40 <dnfile.stream.HeapItemString object at 0x7f9959f0ffb0> Int32
+41 <dnfile.stream.HeapItemString object at 0x7f9959f20170> ItemTier
+42 <dnfile.stream.HeapItemString object at 0x7f9959f202c0> RuntimeHelpers
+43 <dnfile.stream.HeapItemString object at 0x7f9959f20440> Array
+44 <dnfile.stream.HeapItemString object at 0x7f9959f20590> RuntimeFieldHandle
+45 <dnfile.stream.HeapItemString object at 0x7f9959f20710> Enumerable
+46 <dnfile.stream.HeapItemString object at 0x7f9959f20830> IEnumerable`1
+=== MemberRef ===
+1 .ctor
+2 .ctor
+3 .ctor
+4 .ctor
+5 .ctor
+6 .ctor
+7 .ctor
+8 .ctor
+9 .ctor
+10 .ctor
+11 .ctor
+12 .ctor
+13 .ctor
+14 .ctor
+15 .ctor
+16 .ctor
+17 .ctor
+18 .ctor
+19 .ctor
+20 .ctor
+21 GetTypeFromHandle
+22 CreateAndPatchAll
+23 get_Config
+24 Bind
+25 AdaptiveArmor
+26 nameToken
+27 BoostAttackSpeed
+28 BoostDamage
+29 BoostEquipmentRecharge
+30 BoostHp
+31 CrippleWardOnLevel
+32 CutHp
+33 DrizzlePlayerHelper
+34 ExtraLifeConsumed
+35 Ghost
+36 HealthDecay
+37 InvadingDoppelganger
+38 LevelBonus
+39 MinionLeash
+40 MonsoonPlayerHelper
+41 ScrapGreen
+42 ScrapRed
+43 ScrapWhite
+44 ScrapYellow
+45 SkullCounter
+46 Concat
+47 op_Inequality
+48 LogFatal
+49 GetItemDef
+50 get_Value
+51 InitializeArray
+52 Contains
+53 get_tier
+54 get_Value
+55 Contains
+56 get_Value
+57 .ctor
+=== TypeDef methods ===
+TYPE 1  <Module>
+Traceback (most recent call last):
+  File "<stdin>", line 17, in <module>
+AttributeError: 'list' object has no attribute 'first'
