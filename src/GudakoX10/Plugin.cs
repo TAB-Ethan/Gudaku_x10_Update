@@ -39,7 +39,7 @@ using RoR2;
 // nameToken (all internal/enemy bookkeeping items) as a second safety net.
 namespace megidont
 {
-    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.14")]
+    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.15")]
     public class X10 : BaseUnityPlugin
     {
         internal static ManualLogSource log;
@@ -128,7 +128,7 @@ namespace megidont
             if (!chainloaderFinished) return false;
             try
             {
-                InstallAllPatches();
+                if (instance != null) instance.InstallAllPatches();
             }
             catch (Exception e)
             {
@@ -288,23 +288,22 @@ namespace megidont
                 }
             }
 
+            // NOTE ON DOUBLE-MULTIPLICATION: GiveItemPermanent and the ItemDef
+            // overload of GiveItem both funnel onward into
+            // GiveItem(ItemIndex, int) on modern builds. Patching several of
+            // these sites at once used to risk x10 * x10 = x100; that is now
+            // made impossible by a per-inventory/per-item dedup guard inside
+            // MultiplyPrefix.Multiply (see AlreadyAppliedThisCall), so every
+            // give entry point can be patched for maximum coverage.
             bool patchedGiveItemIndex = TryPatchCaller(harmony, typeof(Inventory), "GiveItem",
                 new[] { typeof(ItemIndex), typeof(int) }, "Prefix");
             bool patchedGiveItemDef = TryPatchCaller(harmony, typeof(Inventory), "GiveItem",
                 new[] { typeof(ItemDef), typeof(int) }, "PrefixGiveItemDef");
-
-            // Permanent-give paths run as BACKSTOPS whenever the GiveItem pair
-            // did not apply; they are skipped when GiveItem was patched because
-            // GiveItem*Permanent routes onward into GiveItem on modern builds
-            // (installing both there would multiply twice: x10 then x10 = x100).
-            bool patchedBackstop = false;
-            if (!patchedGiveItemIndex && !patchedGiveItemDef)
-            {
-                patchedBackstop |= TryPatchCaller(harmony, typeof(Inventory), "GiveItemPermanent",
-                    new[] { typeof(ItemIndex), typeof(int) }, "PrefixGiveItemPermanent");
-                patchedBackstop |= TryPatchCaller(harmony, typeof(Inventory), "GiveItemPermanent",
+            bool patchedBackstop =
+                TryPatchCaller(harmony, typeof(Inventory), "GiveItemPermanent",
+                    new[] { typeof(ItemIndex), typeof(int) }, "PrefixGiveItemPermanent") |
+                TryPatchCaller(harmony, typeof(Inventory), "GiveItemPermanent",
                     new[] { typeof(ItemDef), typeof(int) }, "PrefixGiveItemPermanentDef");
-            }
 
             if (patchedModern || patchedGiveItemIndex || patchedGiveItemDef || patchedBackstop)
             {
@@ -422,7 +421,10 @@ namespace megidont
                     log.LogWarning("Target " + type.Name + "." + methodName + " has a stubbed body " +
                         "(ldnull;throw) in the loaded assembly - Harmony cannot wrap it reliably. " +
                         "This mod must run against the REAL game Assembly-CSharp/RoR2 assemblies.");
-                    try { new Harmony("gudako.X10.unwind").Unpatch(target); } catch { }
+                    // Queued-only detour on a stubbed method: drop our patch
+                    // from the target's patch database so HarmonyX never tries
+                    // to materialise the invalid wrapper at first call.
+                    try { harmony.Unpatch(target, HarmonyPatchType.All, "gudako.X10"); } catch { }
                     return false;
                 }
 
@@ -642,6 +644,40 @@ namespace megidont
         {
             Initialize();
             ResolveCaptainMicrobotItems();
+
+            // The legacy fallback postfix (multiplyItems) calls
+            // __instance.GiveItem(...) directly from managed code. If Mono
+            // inlined the vanilla GiveItem into that call site before our
+            // Harmony detour existed, the fallback path would silently do
+            // nothing on this machine. Detect that now and report which
+            // route is trustworthy, so "no multiplication" can never again
+            // happen without an explanation in the log.
+            if (legacyPostfixInstalled && IsGiveItemInlinedIntoCallers())
+            {
+                log.LogWarning("The legacy fallback grant appears to be defeated by Mono inlining on " +
+                    "this machine; multiplication may not work with this game build. Please update " +
+                    "the mod or report this line.");
+            }
+        }
+
+        // Heuristic: inspects the compiled body of Inventory.GiveItem for the
+        // tell-tale IL pattern of a Mono-inlinable trivial method (tiny body
+        // that just tail-calls another method). Used only for diagnostics.
+        private static bool IsGiveItemInlinedIntoCallers()
+        {
+            try
+            {
+                var give = AccessTools.Method(typeof(Inventory), "GiveItem",
+                    new[] { typeof(ItemIndex), typeof(int) });
+                if (give == null) return false;
+                var body = give.GetMethodBody();
+                if (body == null) return false;
+                byte[] il = body.GetILAsByteArray();
+                // A 2-4 instruction body ending in a call/tailcall is what
+                // Mono happily inlines away at the caller.
+                return il != null && il.Length <= 8;
+            }
+            catch { return false; }
         }
 
         // Maps the Captain microbot item codes (Microbots / Nano-bots /
@@ -1007,6 +1043,55 @@ namespace megidont
             X10.log.LogInfo("Item multiplier active - first give routed through " + site + ".");
         }
 
+        // ---- Dedup guard ---------------------------------------------------
+        // GiveItemPermanent(ItemDef) -> GiveItemPermanent(ItemIndex) ->
+        // GiveItem(ItemDef) -> GiveItem(ItemIndex) -> ChangeItemStacksCount...
+        // Nested prefixes from our own call chain used to risk x10^depth.
+        // A plain re-entrancy flag cannot distinguish OUR nested prefixes
+        // (which must not double-multiply) from vanilla nested calls such as
+        // a Teleporter reload that removes and re-gives the same stack (whose
+        // give MUST be multiplied). We therefore stamp each (inventory, item)
+        // pair with the current managed call-stack depth when we multiply, and
+        // skip any further prefix for the same pair at a DEEPER stack level
+        // (our routing). Once the stack returns to or above the stamped depth,
+        // later independent gives are multiplied again, as they should be.
+        private static readonly System.Collections.Generic.Dictionary<Inventory,
+            System.Collections.Generic.Dictionary<ItemIndex, int>> appliedStamps =
+            new System.Collections.Generic.Dictionary<Inventory,
+                System.Collections.Generic.Dictionary<ItemIndex, int>>();
+
+        private static int StackDepth()
+        {
+            // netstandard2.1 lacks Environment.CurrentManagedStackTrace;
+            // counting Environment.StackTrace lines is equivalent for our
+            // purposes (only relative depths of two calls are compared).
+            return Environment.StackTrace.Split('\n').Length;
+        }
+
+        private static bool AlreadyAppliedThisCall(Inventory inventory, ItemIndex itemIndex)
+        {
+            int depth = StackDepth();
+            if (!appliedStamps.TryGetValue(inventory, out var perItem))
+            {
+                perItem = new System.Collections.Generic.Dictionary<ItemIndex, int>();
+                appliedStamps[inventory] = perItem;
+            }
+            if (perItem.TryGetValue(itemIndex, out int stampDepth) && depth > stampDepth)
+                return true; // inner frame of a give we already multiplied
+            return false;
+        }
+
+        private static void MarkApplied(Inventory inventory, ItemIndex itemIndex)
+        {
+            int depth = StackDepth();
+            if (!appliedStamps.TryGetValue(inventory, out var perItem))
+            {
+                perItem = new System.Collections.Generic.Dictionary<ItemIndex, int>();
+                appliedStamps[inventory] = perItem;
+            }
+            perItem[itemIndex] = depth;
+        }
+
         // Shared multiplication core. Always returns true so the original
         // method still executes normally with the (possibly scaled) count.
         //   count <= 0        -> removals pass through untouched
@@ -1021,11 +1106,16 @@ namespace megidont
         {
             if (count <= 0) return true;
             if (insideMultiply) return true;
+            if (AlreadyAppliedThisCall(inventory, itemIndex)) return true;
             if (!X10.IsPlayerInventory(inventory)) return true;
             if (checkFilters && !X10.ShouldMultiply(itemIndex)) return true;
 
             insideMultiply = true;
-            try { count *= X10.MultiplierValue; }
+            try
+            {
+                MarkApplied(inventory, itemIndex);
+                count *= X10.MultiplierValue;
+            }
             finally { insideMultiply = false; }
             return true;
         }
