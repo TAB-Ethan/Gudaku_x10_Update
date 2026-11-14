@@ -34,7 +34,7 @@ using RoR2;
 // nameToken (all internal/enemy bookkeeping items) as a second safety net.
 namespace megidont
 {
-    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.12")]
+    [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.13")]
     public class X10 : BaseUnityPlugin
     {
         internal static ManualLogSource log;
@@ -119,36 +119,54 @@ namespace megidont
 
         private void InstallPatches(Harmony harmony)
         {
-            // PRIMARY TARGET: RoR2.Inventory.GiveItem(ItemIndex, int). This is
-            // the method every pickup/give path funnels through, and it is the
-            // exact patch point that worked in v1.0.4 (the version where
-            // multiplication was confirmed working). We deliberately do NOT
-            // touch ItemCollection.Add or Inventory.ChangeItemStacksCount:
-            // ItemCollection.Add is a tiny method Mono inlines into its
-            // callers, so a prefix there never runs and an ILManipulator /
-            // detour on it crashes with InvalidProgramException
-            // ("Invalid IL code in DMD<RoR2.ItemCollection::Add>"). That crash
-            // previously aborted Awake() mid-way, leaving NO patches installed
-            // at all - which is why nothing was multiplied. The same inline
-            // problem made ChangeItemStacksCount unreachable in practice.
-            bool patchedGiveItem = TryPatchCaller(harmony, typeof(Inventory), "GiveItem",
-                new[] { typeof(ItemIndex), typeof(int) });
+            // PRIMARY TARGETS: both overloads of RoR2.Inventory.GiveItem -
+            //   GiveItem(ItemIndex itemIndex, int countToAdd)
+            //   GiveItem(ItemDef itemDef, int count)
+            // Every pickup/give path funnels through one of these, and this is
+            // the same patch site family that worked in v1.0.4 (the version
+            // where multiplication was confirmed working).
+            //
+            // CRITICAL LESSON FROM THE FAILED BUILDS: Harmony matches
+            // [ref]int parameters by NAME. On 1.5.x the ItemIndex overload's
+            // count parameter is named `countToAdd`, while the ItemDef
+            // overload's is named `count`. A previous build declared `ref int
+            // count` for BOTH prefixes, so the ItemIndex-overload patch failed
+            // at runtime with 'Parameter "count" not found' and NOTHING was
+            // multiplied. Each prefix below must therefore use the exact
+            // parameter name of its target overload, and we verify after
+            // patching that at least one GiveItem prefix actually applied.
+            //
+            // We deliberately do NOT touch ItemCollection.Add or
+            // Inventory.ChangeItemStacksCount: those tiny methods are inlined
+            // by Mono, so patches there either never execute or crash Awake()
+            // with InvalidProgramException (which previously left the mod with
+            // no patches at all).
+            bool patchedGiveItemIndex = TryPatchCaller(harmony, typeof(Inventory), "GiveItem",
+                new[] { typeof(ItemIndex), typeof(int) }, "Prefix");
+            bool patchedGiveItemDef = TryPatchCaller(harmony, typeof(Inventory), "GiveItem",
+                new[] { typeof(ItemDef), typeof(int) }, "PrefixGiveItemDef");
 
-            // Backstops: permanent-item paths on builds where they bypass
-            // GiveItem. Because multiplication happens in the PREFIX (before
-            // vanilla logic runs), a call that merely routes onward to
-            // GiveItem can never be double-multiplied - the scaled count just
-            // flows through and passes the same filters once more harmlessly.
+            // Permanent-give paths only run as BACKSTOPS when neither GiveItem
+            // overload could be patched. They are never installed alongside
+            // the GiveItem prefixes because GiveItem*Permanent routes onward
+            // into GiveItem on current builds - installing both would
+            // multiply twice (x10 then x10 again = x100).
             bool patchedBackstop = false;
-            patchedBackstop |= TryPatchCaller(harmony, typeof(Inventory), "GiveItemPermanent",
-                new[] { typeof(ItemIndex), typeof(int) }, "PrefixGiveItemPermanent");
-            patchedBackstop |= TryPatchCaller(harmony, typeof(Inventory), "GiveItemPermanent",
-                new[] { typeof(ItemDef), typeof(int) }, "PrefixGiveItemPermanentDef");
-
-            if (patchedGiveItem)
+            if (!patchedGiveItemIndex && !patchedGiveItemDef)
             {
-                log.LogInfo("Patched Inventory.GiveItem - pickups will be multiplied x" +
-                    multiplier.Value + ".");
+                patchedBackstop |= TryPatchCaller(harmony, typeof(Inventory), "GiveItemPermanent",
+                    new[] { typeof(ItemIndex), typeof(int) }, "PrefixGiveItemPermanent");
+                patchedBackstop |= TryPatchCaller(harmony, typeof(Inventory), "GiveItemPermanent",
+                    new[] { typeof(ItemDef), typeof(int) }, "PrefixGiveItemPermanentDef");
+            }
+
+            if (patchedGiveItemIndex || patchedGiveItemDef)
+            {
+                log.LogInfo("Patched Inventory.GiveItem (" +
+                    (patchedGiveItemIndex ? "ItemIndex/countToAdd" : "") +
+                    (patchedGiveItemIndex && patchedGiveItemDef ? " + " : "") +
+                    (patchedGiveItemDef ? "ItemDef/count" : "") +
+                    ") - pickups will be multiplied x" + multiplier.Value + ".");
             }
             else if (patchedBackstop)
             {
@@ -173,7 +191,17 @@ namespace megidont
         // Resolve a method on `type` by name+signature and install a Harmony
         // prefix from MultiplyPrefix. `prefixMethod` names the method on
         // MultiplyPrefix to use (defaults to "Prefix"). Returns false if the
-        // target does not exist on this game build (never throws).
+        // target does not exist on this game build or the prefix could not be
+        // applied (never throws).
+        //
+        // After a successful harmony.Patch() call we verify the prefix is
+        // actually attached: HarmonyX applies patches lazily via
+        // ManagedMethodPatcher, so a broken prefix (e.g. one whose `ref int`
+        // parameter name doesn't match the target's) does NOT throw here - it
+        // fails later at first-invocation JIT time with 'Parameter "x" not
+        // found'. We pre-empt that by checking the prefix's own parameter
+        // names against the resolved target up front and rejecting mismatches
+        // before they can silently disable multiplication.
         private static bool TryPatchCaller(Harmony harmony, Type type, string methodName,
             Type[] signature, string prefixMethod = "Prefix")
         {
@@ -182,8 +210,35 @@ namespace megidont
             try
             {
                 var prefix = AccessTools.Method(typeof(MultiplyPrefix), prefixMethod);
+
+                // Guard: every named parameter the prefix declares (other
+                // than __instance/__result/Harmony specials) must exist on the
+                // target with the same name. This catches the exact failure
+                // mode that killed v1.0.12 ('count' vs 'countToAdd').
+                foreach (var pp in prefix.GetParameters())
+                {
+                    string n = pp.Name;
+                    if (n.StartsWith("__")) continue;
+                    if (target.GetParameters().All(tp => tp.Name != n))
+                    {
+                        log.LogWarning("Skipping patch " + type.Name + "." + methodName +
+                            ": prefix parameter '" + n + "' does not exist on the target " +
+                            "(its parameters are: " + string.Join(", ",
+                            target.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name)) + ").");
+                        return false;
+                    }
+                }
+
                 harmony.Patch(target, prefix: new HarmonyMethod(prefix));
-                log.LogInfo("Patched " + type.Name + "." + methodName + ".");
+
+                // NOTE: with BepInEx's HarmonyX, harmony.Patch() only queues
+                // the detour (ManagedMethodPatcher applies it lazily at first
+                // call), so a parameter-name mismatch would NOT throw here -
+                // it would fail silently later. The up-front name guard above
+                // is what actually protects us; the log line prints the real
+                // target parameter names so mismatches are obvious in the log.
+                log.LogInfo("Patched " + type.Name + "." + methodName + "(" +
+                    string.Join(", ", target.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name)) + ").");
                 return true;
             }
             catch (Exception e)
@@ -656,29 +711,54 @@ namespace megidont
     // counts) and non-player inventories pass through untouched.
     internal static class MultiplyPrefix
     {
-        // Prefix for Inventory.GiveItem(ItemIndex itemIndex, int count) - the
-        // primary multiplication point (same patch site as the working v1.0.4
-        // build). Multiplying `ref count` here means vanilla logic then hands
-        // out count*multiplier items with no extra calls and no recursion.
-        public static bool Prefix(Inventory __instance, ItemIndex itemIndex, ref int count)
+        // One-shot flag: the first time a prefix runs we log proof that the
+        // patch is actually executing (HarmonyX applies detours lazily, so a
+        // broken patch otherwise fails silently at first pickup).
+        private static bool firstRunLogged = false;
+
+        // Prefix for Inventory.GiveItem(ItemIndex itemIndex, int countToAdd).
+        // The ref-parameter MUST be named `countToAdd` to match the game's
+        // method exactly - HarmonyX binds `ref int` parameters by name, and
+        // naming it `count` made this patch fail with
+        // 'Parameter "count" not found' in v1.0.12 (nothing multiplied).
+        public static bool Prefix(Inventory __instance, ItemIndex itemIndex, ref int countToAdd)
         {
-            return Multiply(ref count, __instance, itemIndex, checkFilters: false);
+            LogFirstRun("GiveItem(ItemIndex)");
+            return Multiply(ref countToAdd, __instance, itemIndex, checkFilters: false);
         }
 
-        // Prefix for Inventory.GiveItemPermanent(ItemIndex itemIndex, int count).
-        // Backstop for builds where permanent gives bypass GiveItem; on those
-        // where they route onward to GiveItem, checkFilters:false there keeps
-        // this from double-multiplying.
-        public static bool PrefixGiveItemPermanent(Inventory __instance, ItemIndex itemIndex, ref int count)
+        // Prefix for Inventory.GiveItem(ItemDef itemDef, int count). This
+        // overload's count parameter really is named `count`.
+        public static bool PrefixGiveItemDef(Inventory __instance, ItemDef itemDef, ref int count)
         {
-            return Multiply(ref count, __instance, itemIndex, checkFilters: true);
+            if (itemDef == null) return true;
+            LogFirstRun("GiveItem(ItemDef)");
+            return Multiply(ref count, __instance, itemDef.itemIndex, checkFilters: false);
+        }
+
+        // Prefix for Inventory.GiveItemPermanent(ItemIndex itemIndex, int countToAdd).
+        // Backstop only - installed solely when neither GiveItem overload
+        // could be patched (see InstallPatches), so double-multiplication via
+        // Permanent -> GiveItem routing cannot occur.
+        public static bool PrefixGiveItemPermanent(Inventory __instance, ItemIndex itemIndex, ref int countToAdd)
+        {
+            LogFirstRun("GiveItemPermanent(ItemIndex)");
+            return Multiply(ref countToAdd, __instance, itemIndex, checkFilters: true);
         }
 
         // Prefix for Inventory.GiveItemPermanent(ItemDef itemDef, int count).
         public static bool PrefixGiveItemPermanentDef(Inventory __instance, ItemDef itemDef, ref int count)
         {
             if (itemDef == null) return true;
+            LogFirstRun("GiveItemPermanent(ItemDef)");
             return Multiply(ref count, __instance, itemDef.itemIndex, checkFilters: true);
+        }
+
+        private static void LogFirstRun(string site)
+        {
+            if (firstRunLogged) return;
+            firstRunLogged = true;
+            X10.log.LogInfo("Item multiplier active - first give routed through " + site + ".");
         }
 
         // Shared multiplication core. Always returns true so the original
