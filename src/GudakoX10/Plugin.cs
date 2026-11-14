@@ -120,9 +120,47 @@ namespace megidont
 
             if (addMethod != null)
             {
-                var prefix = AccessTools.Method(typeof(MultiplyPrefix), "Prefix");
-                harmony.Patch(addMethod, prefix: new HarmonyMethod(prefix));
-                log.LogInfo("Patched ItemCollection.Add - pickups will be multiplied.");
+                // IMPORTANT: RoR2.ItemCollection.Add is a tiny method that the
+                // Mono runtime always inlines into its callers. A normal
+                // Harmony prefix on it never executes (the JIT simply doesn't
+                // emit a call to patch), and an ILManipulator/detour on it
+                // crashes with InvalidProgramException ("Invalid IL code in
+                // DMD<RoR2.ItemCollection::Add>"). That is why earlier builds
+                // either did nothing or blew up at load. Instead we patch the
+                // non-inlined choke point every give path funnels through:
+                // Inventory.ChangeItemStacksCount<TImpl>(TImpl, ItemIndex, int).
+                bool any = false;
+
+                // Primary target: the open generic definition. Harmony binds
+                // prefixes per instantiated generic method, so this alone may
+                // not catch already-JITted instantiations - we also enumerate
+                // every loaded assembly for closed instantiations of the same
+                // method and patch those too.
+                any |= TryPatchCaller(harmony, typeof(Inventory), "ChangeItemStacksCount",
+                    new[] { typeof(ItemIndex), typeof(int) });
+                any |= PatchAllGenericInstantiations(harmony);
+
+                // Backstop for permanent-item paths on builds where they do
+                // not route through ChangeItemStacksCount. The prefix checks
+                // the player inventory + ShouldMultiply filters first, so this
+                // can never double-multiply a stack change that already went
+                // through the primary patch.
+                any |= TryPatchCaller(harmony, typeof(Inventory), "GiveItemPermanent",
+                    new[] { typeof(ItemIndex), typeof(int) }, "PrefixGiveItemPermanent");
+                any |= TryPatchCaller(harmony, typeof(Inventory), "GiveItemPermanent",
+                    new[] { typeof(ItemDef), typeof(int) }, "PrefixGiveItemPermanentDef");
+
+                if (!any)
+                {
+                    // Last resort: legacy postfix on GiveItem itself.
+                    log.LogWarning("No callable item-give method found; " +
+                        "falling back to legacy GiveItem postfix patches.");
+                    harmony.PatchAll(typeof(X10));
+                }
+                else
+                {
+                    log.LogInfo("Patched item-stack entry points - pickups will be multiplied.");
+                }
             }
             else
             {
@@ -137,6 +175,61 @@ namespace megidont
             MultiplyMicrobots.Install(harmony);
 
             log.LogInfo("10x Pickup Mod loaded!");
+        }
+
+        // Resolve a method on `type` by name+signature and install a Harmony
+        // prefix from MultiplyPrefix. `prefixMethod` names the method on
+        // MultiplyPrefix to use (defaults to "Prefix"). Returns false if the
+        // target does not exist on this game build (never throws).
+        private static bool TryPatchCaller(Harmony harmony, Type type, string methodName,
+            Type[] signature, string prefixMethod = "Prefix")
+        {
+            MethodInfo target = AccessTools.Method(type, methodName, signature);
+            if (target == null) return false;
+            var prefix = AccessTools.Method(typeof(MultiplyPrefix), prefixMethod);
+            harmony.Patch(target, prefix: new HarmonyMethod(prefix));
+            log.LogInfo("Patched " + type.Name + "." + methodName + ".");
+            return true;
+        }
+
+        // Harmony cannot always reach already-JITted generic instantiations by
+        // patching the open generic definition alone, so enumerate every loaded
+        // assembly for closed instances of Inventory.ChangeItemStacksCount<TImpl>
+        // and patch each one with the same MultiplyPrefix.Prefix.
+        private static bool PatchAllGenericInstantiations(Harmony harmony)
+        {
+            int patched = 0;
+            var prefix = AccessTools.Method(typeof(MultiplyPrefix), "Prefix");
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                Type invType;
+                try { invType = asm.GetType("RoR2.Inventory"); }
+                catch { continue; }
+                if (invType == null) continue;
+                MethodInfo[] methods;
+                try { methods = invType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic); }
+                catch { continue; }
+                foreach (var m in methods)
+                {
+                    if (m.Name != "ChangeItemStacksCount") continue;
+                    if (!m.IsGenericMethod) continue;   // open definition patched separately
+                    var def = m.GetGenericMethodDefinition();
+                    if (def == null || !typeof(Inventory).IsAssignableFrom(m.DeclaringType)) continue;
+                    try
+                    {
+                        harmony.Patch(m, prefix: new HarmonyMethod(prefix));
+                        patched++;
+                        log.LogDebug("Patched instantiation " + m.Name + "<" +
+                            string.Join(",", m.GetGenericArguments().Select(a => a.Name)) + ">.");
+                    }
+                    catch (Exception e)
+                    {
+                        log.LogWarning("Could not patch " + m.Name + ": " + e.Message);
+                    }
+                }
+            }
+            if (patched > 0) log.LogInfo("Patched " + patched + " ChangeItemStacksCount instantiation(s).");
+            return patched > 0;
         }
 
         private static void InitConfig(ConfigFile cfg)
@@ -506,7 +599,7 @@ namespace megidont
             playerMasterType = AccessTools.TypeByName("RoR2.PlayerCharacterMaster");
         }
 
-        internal static bool IsPlayerInventory(Inventory inv)
+        public static bool IsPlayerInventory(Inventory inv)
         {
             ResolvePlayerApi();
             if (!inv) return false;
@@ -579,34 +672,44 @@ namespace megidont
         }
     }
 
-    // Harmony prefix for RoR2.ItemCollection.Add(ItemIndex itemIndex, int count).
-    // Scales `count` before the real implementation runs - but ONLY for stacks
-    // that belong to a local player's inventory. Enemy bodies share the same
-    // Inventory/ItemCollection types and receive internal bookkeeping items
-    // (BoostDamage, LevelBonus, SkullCounter, ...) through this exact method
-    // during spawning; multiplying those counts was what broke enemy spawns in
-    // earlier builds. Removals (negative counts), non-player inventories and
-    // any collection whose owner cannot be resolved pass through untouched.
+    // Harmony prefixes for the item-give entry points on RoR2.Inventory:
+    //   ChangeItemStacksCount(ItemIndex, int) - the modern choke point that
+    //     every give/remove path funnels through (it internally calls
+    //     ItemCollection.Add).
+    //   GiveItemPermanent(ItemIndex, int) - backstop for permanent-item paths.
+    // We deliberately do NOT patch ItemCollection.Add itself: it is tiny and
+    // Mono always inlines it into its callers, so a prefix there never runs
+    // and a detour/ILManipulator on it crashes with InvalidProgramException.
+    // Multiplication only applies to stacks that belong to a local player's
+    // inventory. Enemy bodies share the same Inventory type and receive
+    // internal bookkeeping items (BoostDamage, LevelBonus, SkullCounter, ...)
+    // through these exact methods during spawning; multiplying those counts
+    // was what broke enemy spawns in earlier builds. Removals (negative
+    // counts) and non-player inventories pass through untouched.
     internal static class MultiplyPrefix
     {
-        public static bool Prefix(object __instance, ItemIndex itemIndex, ref int count)
+        // Prefix for Inventory.ChangeItemStacksCount(ItemIndex itemIndex, int count).
+        public static bool Prefix(Inventory __instance, ItemIndex itemIndex, ref int count)
         {
-            // Only act on additions; removals (negative counts) pass through.
-            if (count <= 0) return true;
-
-            // THE ENEMY-SPAWN FIX: never scale stacks on anything that is not
-            // a local player's inventory. If the owning inventory cannot be
-            // determined at all, skip multiplication (safe default) - the
-            // ShouldMultiply nameToken guard below still protects enemies in
-            // that scenario, but only for items they should never have had
-            // multiplied anyway.
-            Inventory owner = X10.GetOwningInventory(__instance);
-            if (owner != null && !X10.IsPlayerInventory(owner)) return true;
-
+            if (count <= 0) return true;                       // removals pass through
+            if (!X10.IsPlayerInventory(__instance)) return true; // THE ENEMY-SPAWN FIX
             if (!X10.ShouldMultiply(itemIndex)) return true;
 
             count *= X10.MultiplierValue;
             return true;
+        }
+
+        // Prefix for Inventory.GiveItemPermanent(ItemIndex itemIndex, int count).
+        public static bool PrefixGiveItemPermanent(Inventory __instance, ItemIndex itemIndex, ref int count)
+        {
+            return Prefix(__instance, itemIndex, ref count);
+        }
+
+        // Prefix for Inventory.GiveItemPermanent(ItemDef itemDef, int count).
+        public static bool PrefixGiveItemPermanentDef(Inventory __instance, ItemDef itemDef, ref int count)
+        {
+            if (itemDef == null) return true;
+            return Prefix(__instance, itemDef.itemIndex, ref count);
         }
     }
     // ---- Captain microbot duplication --------------------------------------
