@@ -2779,7 +2779,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/local/dotnet/sdk/8.0.428/RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/opt/dotnet/sdk/8.0.428/RuntimeIdentifierGraph.json"
       }
     }
   }

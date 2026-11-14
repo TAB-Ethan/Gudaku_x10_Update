@@ -20,6 +20,20 @@ using RoR2;
 // ItemCollection.Add via reflection at load time and install a Harmony prefix
 // that multiplies `count`. If it cannot be found (older game layouts), we fall
 // back to the legacy postfix on Inventory.GiveItem(ItemIndex, int).
+//
+// IMPORTANT - WHY THE MULTIPLIER IS SCOPED TO PLAYER INVENTORIES ONLY:
+// Enemy bodies (and other non-player characters) share the same RoR2.Inventory
+// type, and their AI/spawner code routes internal bookkeeping items through the
+// exact same ItemCollection.Add choke point. Examples: ITEM_ADAPTIVEARMOR_NAME,
+// ITEM_BOOSTDAMAGE_NAME, ITEM_BOOSTHP_NAME, ITEM_CUTHP_NAME, ITEM_GHOST_NAME,
+// ITEM_LEVELBONUS_NAME, ITEM_MINIONLEASH_NAME, ITEM_SKULLCOUNTER_NAME and the
+// rest of the enemy-internal set are granted in bulk by the director/spawners
+// when enemies spawn. Multiplying those counts corrupts the spawner's state -
+// which is why builds prior to this fix "stopped spawning enemies" once the
+// ItemCollection.Add patch was installed. The Prefix below therefore verifies
+// the collection belongs to a player-controlled inventory before multiplying,
+// and ShouldMultiply() additionally refuses to multiply any item without a
+// nameToken (all internal/enemy bookkeeping items) as a second safety net.
 namespace megidont
 {
     [BepInPlugin("gudako.X10", "10x Pickup Mod", "1.0.11")]
@@ -29,6 +43,12 @@ namespace megidont
 
         private static ConfigEntry<int> multiplier;
         private static ConfigEntry<bool> fixVoidItems;
+
+        // Captain: when enabled, every microbot the Captain player gains
+        // (pickup, drop transfer, or programmatic give) is duplicated x10 in
+        // the same way regular item pickups are.
+        private static ConfigEntry<bool> multiplyCaptainMicrobots;
+        private static ConfigEntry<int> captainMicrobotMultiplier;
 
         // Internal, no longer exposed in the config file (kept as plain
         // fields so the filtering logic stays identical to earlier versions).
@@ -72,6 +92,13 @@ namespace megidont
             "ScrapRed", "ScrapWhite", "ScrapYellow", "SkullCounter"
         };
 
+        // Item codes of the Captain's microbot summon items (the stacks that
+        // back his bot count). Resolved at Start() purely for a startup log
+        // line confirming the DLC content is present; the actual duplication
+        // happens in MultiplyMicrobots on the MicrobotInfector choke point.
+        private static readonly string[] captainMicrobotItemCodes =
+            { "CaptainBotMedium", "CaptainBotFlaming", "CaptainBotTall" };
+
         private void Awake()
         {
             log = Logger;
@@ -104,6 +131,10 @@ namespace megidont
                 log.LogWarning("RoR2.ItemCollection.Add not found; falling back to legacy GiveItem postfix patches.");
                 harmony.PatchAll(typeof(X10));
             }
+
+            // Captain microbot duplication (self-guarding: stays inactive with
+            // a clear log line if MicrobotInfector can't be resolved).
+            MultiplyMicrobots.Install(harmony);
 
             log.LogInfo("10x Pickup Mod loaded!");
         }
@@ -153,6 +184,15 @@ namespace megidont
 
             fixVoidItems = cfg.Bind("BasicConfig", "Enable Void Item Fix", true,
                 "During testing, the multiplier for void items ended up squaring the drop. Oops. Reenable if you want.");
+
+            // Captain microbots: duplicating the Captain's bot summons is done
+            // via a dedicated patch on RoR2.MicrobotInfector so it works even
+            // when the general item multiplier would not apply (e.g. filtered
+            // rarities). Defaults to x10 as requested.
+            multiplyCaptainMicrobots = cfg.Bind("Captain", "Multiply Microbots", true,
+                "If enabled, microbots gained by the Captain character are duplicated on top of the normal give.");
+            captainMicrobotMultiplier = cfg.Bind("Captain", "Microbot Multiplier", 10,
+                "How many microbots are spawned per microbot the Captain gains (1 = no extra bots).");
 
             // BepInEx only persists sections that contain at least one setting
             // whose value differs from its default. Every rarity toggle above
@@ -270,6 +310,32 @@ namespace megidont
         private void Start()
         {
             Initialize();
+            ResolveCaptainMicrobotItems();
+        }
+
+        // Maps the Captain microbot item codes to their live ItemIndexes once
+        // the catalog is populated, purely so the startup log can confirm the
+        // relevant DLC content exists. The duplication itself hooks
+        // MicrobotInfector.Infected (see MultiplyMicrobots), which works
+        // regardless of how the bot stacks were granted.
+        private static void ResolveCaptainMicrobotItems()
+        {
+            int found = 0;
+            foreach (string code in captainMicrobotItemCodes)
+            {
+                if (ItemCatalog.FindItemIndex(code) != ItemIndex.None) found++;
+            }
+
+            if (found > 0)
+            {
+                log.LogInfo("Captain microbot items present (" + found + "/" + captainMicrobotItemCodes.Length +
+                    "); they will be duplicated x" + captainMicrobotMultiplier.Value + " for Captain players.");
+            }
+            else
+            {
+                log.LogWarning("No Captain microbot items found in the item catalog (captain DLC missing?); " +
+                    "the Captain microbot duplication feature has nothing to act on.");
+            }
         }
 
         // Shared filter logic: returns true when the given item stack change
@@ -284,6 +350,15 @@ namespace megidont
 
             ItemDef itemDef = ItemCatalog.GetItemDef(itemIndex);
             if (itemDef == null) return true;
+
+            // SAFETY NET AGAINST THE ENEMY-SPAWN BUG: every enemy/director
+            // bookkeeping item (ITEM_BOOSTDAMAGE_NAME, ITEM_GHOST_NAME,
+            // ITEM_LEVELBONUS_NAME, ...) is an *internal* ItemDef with no
+            // nameToken. Multiplying the counts the spawner hands out for
+            // those corrupts enemy setup and stops enemies from spawning at
+            // all, so anything without a player-visible name token is never
+            // multiplied here - regardless of which inventory it lands in.
+            if (string.IsNullOrEmpty(itemDef.nameToken)) return false;
 
             // Rarity (tier) filters from the RarityFilter config section.
             switch (itemDef.tier)
@@ -382,35 +457,288 @@ namespace megidont
             get { return multiplier.Value; }
         }
 
+        internal static int CaptainMicrobotMultiplierValue
+        {
+            get { return captainMicrobotMultiplier.Value; }
+        }
+
+        internal static bool ShouldMultiplyMicrobots()
+        {
+            return multiplyCaptainMicrobots.Value && captainMicrobotMultiplier.Value > 1;
+        }
+
         // Fallback postfix on Inventory.GiveItem(ItemIndex, int): multiplies
         // the count by the configured multiplier unless the item is forbidden.
         // Only applied when ChangeItemStacksCount could not be resolved.
+        // Guarded with the same player-inventory check as MultiplyPrefix so
+        // enemy inventories are never touched (see the enemy-spawn bug note
+        // at the top of this file).
         [HarmonyPatch(typeof(Inventory), "GiveItem", new[] { typeof(ItemIndex), typeof(int) })]
         [HarmonyPostfix]
-        private static void multiplyItems(ItemIndex __1, ref int __2)
+        private static void multiplyItems(Inventory __instance, ItemIndex __1, ref int __2)
         {
+            if (__2 <= 0) return;
+            if (!IsPlayerInventory(__instance)) return;
             if (!ShouldMultiply(__1)) return;
             __2 *= multiplier.Value;
+        }
+
+        // ---- Player-only scoping -------------------------------------------
+        // RoR2.ItemCollection is a plain class with no public back-pointer to
+        // its owning Inventory, so we locate the private instance field that
+        // references an Inventory (discovered via reflection at load time) and
+        // use it to decide whether a stack change belongs to a real player.
+        private static FieldInfo inventoryFieldInItemCollection;
+        private static bool inventoryFieldLookupDone;
+
+        internal static bool IsPlayerInventory(Inventory inv)
+        {
+            if (!inv) return false;
+            CharacterBody body = inv.GetBody();
+            if (!body) return false;
+            PlayerCharacterMaster master = body.master;
+            if (!master) return false;
+            return master.hasAuthority && master.isLocalPlayer;
+        }
+
+        // Given the `this` instance of ItemCollection.Add, resolve the
+        // Inventory that owns the collection. Returns null for any collection
+        // we cannot attribute to a live inventory (which is treated as
+        // "do not multiply" - the safe default).
+        internal static Inventory GetOwningInventory(object itemCollectionInstance)
+        {
+            if (itemCollectionInstance == null) return null;
+
+            if (!inventoryFieldLookupDone)
+            {
+                inventoryFieldLookupDone = true;
+                foreach (var f in AccessTools.GetDeclaredFields(itemCollectionInstance.GetType()) ??
+                                  itemCollectionInstance.GetType().GetFields(BindingFlags.Instance |
+                                      BindingFlags.Public | BindingFlags.NonPublic))
+                {
+                    if (f.FieldType == typeof(Inventory))
+                    {
+                        inventoryFieldInItemCollection = f;
+                        break;
+                    }
+                }
+                if (inventoryFieldInItemCollection != null)
+                {
+                    log.LogInfo("ItemCollection -> Inventory backlink found via field '" +
+                        inventoryFieldInItemCollection.Name + "'.");
+                }
+                else
+                {
+                    log.LogWarning("No Inventory backlink field found on RoR2.ItemCollection; " +
+                        "falling back to nameToken-only filtering to protect enemy spawns.");
+                }
+            }
+
+            if (inventoryFieldInItemCollection == null) return null;
+            try
+            {
+                return inventoryFieldInItemCollection.GetValue(itemCollectionInstance) as Inventory;
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 
     // Harmony prefix for RoR2.ItemCollection.Add(ItemIndex itemIndex, int count).
-    // Scales `count` before the real implementation runs. Only genuine pickup
-    // paths pass positive counts through Add on a live inventory's permanent
-    // stacks; removals (negative counts) and bookkeeping recomputes (which use
-    // SetStackValue/AddTo instead of Add) are left untouched. Returning true
-    // lets the original method execute with the modified argument.
+    // Scales `count` before the real implementation runs - but ONLY for stacks
+    // that belong to a local player's inventory. Enemy bodies share the same
+    // Inventory/ItemCollection types and receive internal bookkeeping items
+    // (BoostDamage, LevelBonus, SkullCounter, ...) through this exact method
+    // during spawning; multiplying those counts was what broke enemy spawns in
+    // earlier builds. Removals (negative counts), non-player inventories and
+    // any collection whose owner cannot be resolved pass through untouched.
     internal static class MultiplyPrefix
     {
-        public static bool Prefix(ItemIndex itemIndex, ref int count)
+        public static bool Prefix(object __instance, ItemIndex itemIndex, ref int count)
         {
             // Only act on additions; removals (negative counts) pass through.
             if (count <= 0) return true;
+
+            // THE ENEMY-SPAWN FIX: never scale stacks on anything that is not
+            // a local player's inventory. If the owning inventory cannot be
+            // determined at all, skip multiplication (safe default) - the
+            // ShouldMultiply nameToken guard below still protects enemies in
+            // that scenario, but only for items they should never have had
+            // multiplied anyway.
+            Inventory owner = X10.GetOwningInventory(__instance);
+            if (owner != null && !X10.IsPlayerInventory(owner)) return true;
 
             if (!X10.ShouldMultiply(itemIndex)) return true;
 
             count *= X10.MultiplierValue;
             return true;
+        }
+    }
+
+    // ---- Captain microbot duplication --------------------------------------
+    // The Captain's microbots are created by RoR2.MicrobotInfector.Infected(),
+    // which the game calls once per bot gained (pickup, drop transfer, or
+    // programmatic give all funnel through it). We postfix that choke point:
+    // when the infecting character is a local-player Captain, each call is
+    // repeated (multiplier - 1) extra times - x10 total with the default
+    // config. All other characters are untouched, and re-entry from our own
+    // duplicate invocations is blocked so the count can never explode
+    // recursively (x10 -> x100 -> ...).
+    internal static class MultiplyMicrobots
+    {
+        // Reentrancy guard for the duplicate invocations below.
+        private static bool duplicating = false;
+
+        // Cached reflection handles for RoR2.MicrobotInfector (resolved at
+        // install time so the mod still loads on builds where the type was
+        // renamed/moved - the patch simply stays inactive then).
+        private static MethodInfo infectedMethod;
+        private static ParameterInfo[] infectedParameters;
+        private static FieldInfo infectorOwnerField; // PlayerCharacterMaster owning the infector
+        private static bool installed;
+
+        // Called manually from X10.Awake() (instead of attribute-based
+        // patching) because the target method must be discovered via
+        // reflection at runtime.
+        public static void Install(Harmony harmony)
+        {
+            Type infectorType = AccessTools.TypeByName("RoR2.MicrobotInfector");
+            if (infectorType == null)
+            {
+                log.LogWarning("RoR2.MicrobotInfector not found; Captain microbot duplication disabled.");
+                return;
+            }
+
+            infectedMethod = AccessTools.Method(infectorType, "Infected");
+            if (infectedMethod == null)
+            {
+                log.LogWarning("MicrobotInfector.Infected not found; Captain microbot duplication disabled.");
+                return;
+            }
+            infectedParameters = infectedMethod.GetParameters();
+
+            // The owner field naming differs across game versions; discover it
+            // by type instead of hard-coding a name. Without it we cannot tell
+            // Captain players from everyone else, so stay inactive if missing.
+            var flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+            infectorOwnerField = infectorType.GetFields(flags).FirstOrDefault(
+                f => typeof(PlayerCharacterMaster).IsAssignableFrom(f.FieldType));
+
+            if (infectorOwnerField == null)
+            {
+                log.LogWarning("Could not resolve the owning master field on MicrobotInfector; " +
+                    "Captain microbot duplication disabled to avoid spawning bots for the wrong character.");
+                return;
+            }
+
+            installed = true;
+            harmony.Patch(infectedMethod,
+                postfix: new HarmonyMethod(AccessTools.Method(typeof(MultiplyMicrobots), "Postfix")));
+            log.LogInfo("Patched MicrobotInfector.Infected - Captain microbots will be duplicated x" +
+                X10.CaptainMicrobotMultiplierValue + ".");
+        }
+
+        // Harmony postfix on MicrobotInfector.Infected(...). Only __instance
+        // plus pass-through parameters are declared so it binds regardless of
+        // the exact signature; the real parameters are read from __original_args.
+        public static void Postfix(object __instance, object[] __original_args)
+        {
+            if (!installed) return;
+            if (!X10.ShouldMultiplyMicrobots()) return;
+            if (duplicating) return; // never multiply our own duplicates
+
+            try
+            {
+                // Whose infector is this? Only Captain players get the bonus.
+                var owner = infectorOwnerField.GetValue(__instance) as PlayerCharacterMaster;
+                if (owner == null) return;
+                if (!IsCaptainPlayer(owner)) return;
+
+                int extra = X10.CaptainMicrobotMultiplierValue - 1;
+                if (extra <= 0) return;
+
+                // Safety: only replay calls that take no arguments or exactly
+                // one reference-type argument (the infection target). Anything
+                // more exotic we don't understand, so we leave it alone rather
+                // than risk corrupting the summon state.
+                object[] replayArgs = null;
+                if (infectedParameters.Length == 0)
+                {
+                    replayArgs = Array.Empty<object>();
+                }
+                else if (infectedParameters.Length == 1 &&
+                         !infectedParameters[0].ParameterType.IsValueType &&
+                         __original_args != null && __original_args.Length == 1)
+                {
+                    replayArgs = new object[] { __original_args[0] };
+                }
+                if (replayArgs == null) return;
+
+                duplicating = true;
+                try
+                {
+                    for (int i = 0; i < extra; i++)
+                    {
+                        // Re-run the vanilla infection on the same infector so
+                        // every duplicate goes through the game's own spawn,
+                        // networking and limit checks.
+                        infectedMethod.Invoke(__instance, replayArgs);
+                    }
+                }
+                finally
+                {
+                    duplicating = false;
+                }
+            }
+            catch (Exception e)
+            {
+                log.LogWarning("Microbot duplication skipped due to error: " + e.Message);
+            }
+        }
+
+        // True when the given master is a player-controlled Captain. Matched
+        // against the body's stable identifier first, with an asset-name
+        // fallback for builds where the identifier catalog changed.
+        private static bool IsCaptainPlayer(PlayerCharacterMaster master)
+        {
+            CharacterBody body = master ? master.body : null;
+            if (!body) return false;
+
+            string identifier = GetBodyIdentifier(body);
+            if (identifier.IndexOf("Captain", StringComparison.OrdinalIgnoreCase) >= 0)
+                return true;
+
+            GameObject bodyPrefab = body.gameObject;
+            if (bodyPrefab != null &&
+                bodyPrefab.name.IndexOf("Captain", StringComparison.OrdinalIgnoreCase) >= 0)
+                return true;
+
+            return false;
+        }
+
+        // Reads CharacterBody.bodyIdentifier (added in later RoR2 versions)
+        // defensively; returns empty string on older layouts.
+        private static string GetBodyIdentifier(CharacterBody body)
+        {
+            try
+            {
+                var prop = AccessTools.Property(body.GetType(), "bodyIdentifier");
+                if (prop != null)
+                {
+                    object id = prop.GetValue(body, null);
+                    if (id != null) return id.ToString();
+                }
+                var field = AccessTools.Field(body.GetType(), "bodyIdentifier");
+                if (field != null)
+                {
+                    object id = field.GetValue(body);
+                    if (id != null) return id.ToString();
+                }
+            }
+            catch { }
+            return string.Empty;
         }
     }
 }
